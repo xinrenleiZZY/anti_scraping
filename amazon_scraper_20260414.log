@@ -1,0 +1,6 @@
+2026-04-14 09:14:43,679 - __main__ - INFO - 爬虫初始化完成 - 延迟范围: (3, 6)s, 输出目录: ./amazon_data
+2026-04-14 09:14:43,679 - __main__ - INFO - 开始爬取关键词: Towel, 页数: 1
+2026-04-14 09:14:43,679 - __main__ - INFO - 正在访问第 1 页: https://www.amazon.com/s?k=Towel&page=1
+2026-04-14 09:14:43,680 - anti_scraping.proxy_manager - INFO - 加载了 0 个代理
+2026-04-14 09:14:43,720 - __main__ - ERROR - 爬取第 1 页时发生错误: name 'random' is not defined
+2026-04-14 09:14:43,724 - __main__ - INFO - 爬取完成，共获取 0 个商品
