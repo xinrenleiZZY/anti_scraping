@@ -164,6 +164,8 @@ scraping_tasks (任务表)                    raw_search_results (数据表)
 docker-compose up -d --build
 docker-compose down
 docker-compose up -d
+# 手动重启前端
+docker restart amazon_frontend
 # 查看日志
 
 docker-compose logs -f
