@@ -78,3 +78,52 @@ scraping_tasks (任务表)                    raw_search_results (数据表)
 │ completed_at        │                   │ ...                     │
 │ total_items         │                   └─────────────────────────┘
 └─────────────────────┘
+
+───────────────────────────────────────────────────────────────
+前端界面                API 接口                后台任务
+    ──────────────────────────────────────────────
+    │                    │                       │
+    │  POST /scrape      │                       │
+    ├───────────────────>│                       │
+    │                    │  background_tasks     │
+    │  {"message": "任务已启动"}                 │
+    │<───────────────────┤                       │
+    │                    │                       │
+    │                    │  run_now(keyword)     │
+    │                    ├──────────────────────>│
+    │                    │                       │ 爬取数据
+    │                    │                       │ 处理数据
+    │                    │                       │ 存入数据库
+    │                    │                       │
+    │  查询状态          │                       │
+    ├───────────────────>│                       │
+    │                    │  查数据库              │
+    │  {"status": "running"}                     │
+    │<───────────────────┤                       │
+    ──────────────────────────────────────────────
+
+
+    使用场景
+场景1：前端按钮触发
+javascript
+// 前端点击"开始爬取"按钮
+fetch('/api/scrape?keyword=pool party decorations', {
+    method: 'POST'
+})
+.then(res => res.json())
+.then(data => console.log(data));
+场景2：定时任务自动触发
+python
+# 使用 APScheduler 每天早上9点执行
+from apscheduler.schedulers.background import BackgroundScheduler
+import requests
+
+scheduler = BackgroundScheduler()
+
+@scheduler.scheduled_job('cron', hour=9)
+def daily_job():
+    requests.post('http://localhost:8000/scrape/daily')
+场景3：命令行触发
+bash
+# 用 curl 命令触发
+curl -X POST "http://localhost:8000/scrape?keyword=beach%20towels&pages=3"
