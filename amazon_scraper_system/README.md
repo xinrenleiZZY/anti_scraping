@@ -160,6 +160,41 @@ scraping_tasks (任务表)                    raw_search_results (数据表)
     ──────────────────────────────────────────────
 ```
 
+# 重启服务
+docker-compose up -d --build
+docker-compose down
+docker-compose up -d
+# 查看日志
+
+docker-compose logs -f
+docker logs amazon_backend --tail 30
+# 访问所有页面
+http://localhost:8880/index.html     # 仪表盘
+http://localhost:8880/keywords.html  # 关键词管理
+http://localhost:8880/scrape.html    # 爬取控制
+http://localhost:8880/data.html      # 数据查询
+http://localhost:8880/tasks.html     # 任务监控
+
+# 容器内结构
+```
+/app
+├── Dockerfile
+├── main.py
+├── requirements.txt
+├── amazon_scraper.log
+├── __pycache__/
+└── app/
+    ├── __init__.py
+    ├── __pycache__/
+    ├── api/
+    ├── scraper/
+    ├── config.py
+    ├── crud.py
+    ├── database.py
+    ├── main.py
+    ├── models.py
+    └── schemas.py
+```
 # Amazon Scraper System
 
 亚马逊商品数据爬取系统 - 支持关键词搜索、数据采集、可视化展示的全栈解决方案。
@@ -203,11 +238,23 @@ amazon_scraper_system/
 │   ├── requirements.txt        # Python依赖
 │   └── Dockerfile             # 后端容器配置
 │
-├── frontend/                   # 前端界面
-│   ├── index.html             # 主页面
-│   ├── style.css              # 样式文件
-│   ├── app.js                 # 前端逻辑
-│   └── Dockerfile             # Nginx容器配置
+├── frontend/                  # 前端界面
+│   ├── index.html              # 主页面
+│   ├── keywords.html
+│   ├── scrape.html
+│   ├── data.html
+│   ├── tasks.html
+│   ├── nginx.conf   
+│   ├── Dockerfile             # Nginx容器配置     
+│   ├── css/
+│   │   └── style.css         # 样式文件
+│   └── js/                   # 前端逻辑
+│       ├── common.js
+│       ├── dashboard.js
+│       ├── keywords.js
+│       ├── scrape.js
+│       ├── data.js
+│       └── tasks.js
 │
 ├── docker-compose.yml         # 服务编排
 ├── .env.example               # 环境变量模板
