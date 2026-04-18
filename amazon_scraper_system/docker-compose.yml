@@ -20,12 +20,14 @@ services:
       timeout: 5s
       retries: 5
 
-  FastAPI 后端
+  # FastAPI 后端
   backend:
-    build: ./backend
+    image: python:3.11-slim
     container_name: amazon_backend
+
+    working_dir: /app
     environment:
-      DATABASE_URL: postgresql://admin:123456@postgres:5200/amazon_scraper
+      DATABASE_URL: postgresql://admin:123456@postgres:5432/amazon_scraper
       INPUT_FOLDER: /app/app/scraper/amazon_data
       PROCESSED_DATA_DIR: /app/app/scraper/processed_data
     volumes:
@@ -36,15 +38,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "pip install --no-cache-dir -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
-  # # Nginx 前端
-  # frontend:
-  #   image: nginx:alpine
-  #   container_name: amazon_frontend
-  #   volumes:
-  #     - ./frontend:/usr/share/nginx/html
-  #   ports:
-  #     - "80:80"
-  #   depends_on:
-  #     - backend
+  # Nginx 前端
+  frontend:
+    image: nginx:alpine
+    container_name: amazon_frontend
+    volumes:
+      - ./frontend:/usr/share/nginx/html
+    ports:
+      - "8880:80"
+    depends_on:
+      - backend
