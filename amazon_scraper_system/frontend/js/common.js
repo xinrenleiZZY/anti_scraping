@@ -1,13 +1,14 @@
-// API 基础地址（使用相对路径，nginx 会代理）
-const API_BASE = '/api';
+// 自动检测：本地直接访问后端，Docker 通过 nginx 代理
+const API_BASE = (location.port === '8000' || location.hostname === 'localhost' && location.port !== '8880')
+    ? 'http://localhost:8000/api'
+    : '/api';
 
-// 或者直接使用完整地址（如果 nginx 不配置代理）
-// const API_BASE = 'http://localhost:8000/api';
+const HEALTH_URL = API_BASE.startsWith('http') ? 'http://localhost:8000/health' : '/health';
 
 async function checkApiStatus() {
     try {
         // 使用相对路径，通过 nginx 代理
-        const response = await fetch('/health');
+        const response = await fetch(HEALTH_URL);
         const statusEl = document.getElementById('api-status');
         if (response.ok) {
             statusEl.textContent = 'API 在线';
