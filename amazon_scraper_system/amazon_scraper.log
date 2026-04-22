@@ -303,3 +303,6 @@
 2026-04-18 15:38:40,985 - INFO - 数据已保存到: e:\ZY2026\运营-准生产级爬虫\amazon_scraper_system\backend\app\scraper\amazon_data/beach+towels_20260418_153840.json
 2026-04-18 15:38:41,012 - INFO - 存入数据库 50 条记录
 2026-04-18 15:38:41,021 - INFO - ✅ 流程完成: beach+towels, 爬取 62 条, 入库 50 条
+2026-04-21 10:07:19,015 - ERROR - 流程失败 beach+towels: (psycopg2.OperationalError) connection to server at "localhost" (::1), port 5432 failed: FATAL:  database "amazon_scraper" does not exist
+
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
