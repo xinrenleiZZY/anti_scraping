@@ -2,14 +2,11 @@
     "keywords": [
         "4th+of+july+crafts",
         "vbs+crafts",
-        "key13",
         "juneteenth+party+supplies",
         "teacher+appreciation+week+decorations",
         "nurses+week+decorations+2026",
         "america+250+parade+throws",
         "gay+bumper+magnets",
-        "key6",
-        "back+to+school+crafts",
         "back+to+school+decorations",
         "pool+floaties",
         "fourth+of+july+decorations",
@@ -17,12 +14,9 @@
         "red+white+and+blue+decorations",
         "hawaiian+party+supplies",
         "camping+party+supplies",
-        "key14",
         "fake+palm+leaves",
         "floaties",
         "nurses+week+decorations",
-        "key15",
-        "nurses+week+party+decorations",
         "pride+month+party+decorations",
         "memorial+party+supplies",
         "pool+floats+kids",
@@ -33,8 +27,6 @@
         "lemon+decor",
         "pool+toys",
         "beach+party+decorations",
-        "key11",
-        "key3",
         "summer+crafts+for+kids",
         "camping+crafts+for+kids",
         "hawaiian+leis",
@@ -43,14 +35,12 @@
         "gay+magnets+for+car+prank",
         "camping+party+decorations",
         "leis+for+luau+party",
-        "key9",
         "under+the+sea+party+decorations",
         "gay+car+magnets",
         "pool+party+decorations",
         "summer+party+decorations",
         "pool+party+supplies",
         "summer+camp+door+banner",
-        "Christmas",
         "fathers+day+gifts",
         "nurses+week+gifts+bulk+2026",
         "mental+health+awareness",
@@ -64,17 +54,11 @@
         "mothers+day+crafts",
         "tiki+party+decorations",
         "end+of+year+gifts+for+students",
-        "key2",
         "beach+party+supplies",
-        "key8",
         "lemon+party+decorations",
         "gay+pride+magnets+for+cars",
-        "poole",
-        "key4",
         "pride+month+party+supplies",
         "pool+floats",
-        "key7",
-        "key1",
         "mothers+day+decorations",
         "fish+party+decorations",
         "hawaiian+party+decorations",
@@ -91,17 +75,15 @@
         "beach+towels",
         "luau+party+supplies",
         "end+of+year+student+gifts",
-        "key5",
         "tiki+party+supplies",
         "beach+theme+party+decorations",
         "camping+door+decor",
         "mental+health+awareness+items",
         "fathers+day+party+supplies",
-        "key12",
-        "key10",
         "summer+party+supplies",
         "4th+of+july+party+supplies",
-        "teacher+appreciation+week+party+supplies"
+        "teacher+appreciation+week+party+supplies",
+        "wildflower+party+decorations"
     ],
     "pages": null,
     "postal_code": "90060",
@@ -111,25 +93,13 @@
     ],
     "output_dir": "./amazon_data",
     "keyword_tags": {
-        "pool+party+decorations": [
-            "test1",
-            "test3"
-        ],
-        "summer+decorations": [
-            "1",
-            "2"
-        ],
+        "pool+party+decorations": [],
+        "summer+decorations": [],
         "Christmas": [
             "test4"
         ],
-        "camping+crafts+for+kids": [
-            "111"
-        ],
-        "fathers+day+crafts+for+kids": [
-            "2222"
-        ],
-        "lemon+party+decorations": [
-            "3333"
-        ]
+        "camping+crafts+for+kids": [],
+        "fathers+day+crafts+for+kids": [],
+        "lemon+party+decorations": []
     }
 }
