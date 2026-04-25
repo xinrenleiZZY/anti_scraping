@@ -252,125 +252,125 @@
 // ============================================
 // 鼠标拖尾特效
 // ============================================
-(function() {
-    // 配置参数
-    const config = {
-        particleCount: 12,      // 拖尾粒子数量
-        particleSize: 6,        // 粒子大小
-        particleColor: ['#3b82f6', '#8b5cf6', '#60a5fa', '#a78bfa', '#c084fc'], // 多彩色
-        fadeDelay: 0.5,         // 淡出延迟(秒)
-        maxTrailLength: 15      // 最大拖尾长度
-    };
+// (function() {
+//     // 配置参数
+//     const config = {
+//         particleCount: 12,      // 拖尾粒子数量
+//         particleSize: 6,        // 粒子大小
+//         particleColor: ['#3b82f6', '#8b5cf6', '#60a5fa', '#a78bfa', '#c084fc'], // 多彩色
+//         fadeDelay: 0.5,         // 淡出延迟(秒)
+//         maxTrailLength: 15      // 最大拖尾长度
+//     };
     
-    let particles = [];
-    let mouseX = 0, mouseY = 0;
-    let lastX = 0, lastY = 0;
-    let animationId = null;
-    let canvas = null;
-    let ctx = null;
+//     let particles = [];
+//     let mouseX = 0, mouseY = 0;
+//     let lastX = 0, lastY = 0;
+//     let animationId = null;
+//     let canvas = null;
+//     let ctx = null;
     
-    function initMouseTrail() {
-        // 创建 canvas
-        canvas = document.createElement('canvas');
-        canvas.id = 'mouse-trail-canvas';
-        canvas.style.position = 'fixed';
-        canvas.style.top = '0';
-        canvas.style.left = '0';
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        canvas.style.pointerEvents = 'none';
-        canvas.style.zIndex = '9998';
-        document.body.appendChild(canvas);
+//     function initMouseTrail() {
+//         // 创建 canvas
+//         canvas = document.createElement('canvas');
+//         canvas.id = 'mouse-trail-canvas';
+//         canvas.style.position = 'fixed';
+//         canvas.style.top = '0';
+//         canvas.style.left = '0';
+//         canvas.style.width = '100%';
+//         canvas.style.height = '100%';
+//         canvas.style.pointerEvents = 'none';
+//         canvas.style.zIndex = '9998';
+//         document.body.appendChild(canvas);
         
-        ctx = canvas.getContext('2d');
+//         ctx = canvas.getContext('2d');
         
-        // 调整画布大小
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+//         // 调整画布大小
+//         function resizeCanvas() {
+//             canvas.width = window.innerWidth;
+//             canvas.height = window.innerHeight;
+//         }
+//         resizeCanvas();
+//         window.addEventListener('resize', resizeCanvas);
         
-        // 监听鼠标移动
-        document.addEventListener('mousemove', function(e) {
-            mouseX = e.clientX;
-            mouseY = e.clientY;
+//         // 监听鼠标移动
+//         document.addEventListener('mousemove', function(e) {
+//             mouseX = e.clientX;
+//             mouseY = e.clientY;
             
-            // 添加新粒子
-            addParticle(mouseX, mouseY);
-        });
+//             // 添加新粒子
+//             addParticle(mouseX, mouseY);
+//         });
         
-        // 监听触摸屏（移动端）
-        document.addEventListener('touchmove', function(e) {
-            if (e.touches.length) {
-                mouseX = e.touches[0].clientX;
-                mouseY = e.touches[0].clientY;
-                addParticle(mouseX, mouseY);
-            }
-        });
+//         // 监听触摸屏（移动端）
+//         document.addEventListener('touchmove', function(e) {
+//             if (e.touches.length) {
+//                 mouseX = e.touches[0].clientX;
+//                 mouseY = e.touches[0].clientY;
+//                 addParticle(mouseX, mouseY);
+//             }
+//         });
         
-        // 开始动画循环
-        animate();
-    }
+//         // 开始动画循环
+//         animate();
+//     }
     
-    function addParticle(x, y) {
-        // 限制拖尾长度
-        if (particles.length > config.maxTrailLength) {
-            particles.shift();
-        }
+//     function addParticle(x, y) {
+//         // 限制拖尾长度
+//         if (particles.length > config.maxTrailLength) {
+//             particles.shift();
+//         }
         
-        const color = config.particleColor[Math.floor(Math.random() * config.particleColor.length)];
+//         const color = config.particleColor[Math.floor(Math.random() * config.particleColor.length)];
         
-        particles.push({
-            x: x,
-            y: y,
-            size: Math.random() * config.particleSize + 2,
-            alpha: 1,
-            color: color,
-            life: 1
-        });
-    }
+//         particles.push({
+//             x: x,
+//             y: y,
+//             size: Math.random() * config.particleSize + 2,
+//             alpha: 1,
+//             color: color,
+//             life: 1
+//         });
+//     }
     
-    function animate() {
-        if (!ctx) return;
+//     function animate() {
+//         if (!ctx) return;
         
-        // 清空画布（使用透明度实现渐变消失效果）
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+//         // 清空画布（使用透明度实现渐变消失效果）
+//         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // 更新并绘制所有粒子
-        for (let i = particles.length - 1; i >= 0; i--) {
-            const p = particles[i];
+//         // 更新并绘制所有粒子
+//         for (let i = particles.length - 1; i >= 0; i--) {
+//             const p = particles[i];
             
-            // 减少生命值
-            p.life -= 0.03;
-            p.alpha = p.life;
+//             // 减少生命值
+//             p.life -= 0.03;
+//             p.alpha = p.life;
             
-            if (p.life <= 0) {
-                particles.splice(i, 1);
-                continue;
-            }
+//             if (p.life <= 0) {
+//                 particles.splice(i, 1);
+//                 continue;
+//             }
             
-            // 绘制粒子
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+//             // 绘制粒子
+//             ctx.beginPath();
+//             ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
             
-            // 渐变色填充
-            const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * p.life);
-            gradient.addColorStop(0, p.color);
-            gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
-            ctx.fillStyle = gradient;
+//             // 渐变色填充
+//             const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * p.life);
+//             gradient.addColorStop(0, p.color);
+//             gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+//             ctx.fillStyle = gradient;
             
-            ctx.fill();
-        }
+//             ctx.fill();
+//         }
         
-        animationId = requestAnimationFrame(animate);
-    }
+//         animationId = requestAnimationFrame(animate);
+//     }
     
-    // 页面加载完成后启动
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initMouseTrail);
-    } else {
-        initMouseTrail();
-    }
-})();
+//     // 页面加载完成后启动
+//     if (document.readyState === 'loading') {
+//         document.addEventListener('DOMContentLoaded', initMouseTrail);
+//     } else {
+//         initMouseTrail();
+//     }
+// })();
