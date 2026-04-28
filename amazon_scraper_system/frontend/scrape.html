@@ -8,6 +8,22 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
+<style>
+    .cron-badge {
+        font-family: monospace;
+        background-color: #f8f9fa;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+    .job-card {
+        transition: all 0.2s;
+    }
+    .job-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+</style>
 <body>
     <div class="container-fluid">
         <div class="row">
@@ -51,27 +67,18 @@
                         </div>
                     </div>
 
-                    <!-- 定时任务 -->
+                    <!-- 定时任务管理 -->
                     <div class="col-md-6 mb-4">
                         <div class="card">
-                            <div class="card-header bg-success text-white">
-                                <h5 class="mb-0"><i class="bi bi-clock-history"></i> 定时任务</h5>
+                            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="bi bi-clock-history"></i> 定时任务管理</h5>
+                                <button class="btn btn-sm btn-light" onclick="showAddScheduleModal()">
+                                    <i class="bi bi-plus"></i> 添加任务
+                                </button>
                             </div>
-                            <div class="card-body">
-                                <div class="mb-3">
-                                    <button class="btn btn-outline-success w-100 mb-2" onclick="triggerDaily()">
-                                        <i class="bi bi-calendar-day"></i> 触发每日任务
-                                    </button>
-                                    <button class="btn btn-outline-success w-100" onclick="triggerWeekly()">
-                                        <i class="bi bi-calendar-week"></i> 触发每周任务
-                                    </button>
-                                </div>
-                                <div class="alert alert-info mt-3">
-                                    <small>
-                                        <i class="bi bi-info-circle"></i> 
-                                        每日任务：每天早上9点自动执行<br>
-                                        每周任务：每周一早上9点自动执行
-                                    </small>
+                            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                <div id="scheduleJobsList">
+                                    <div class="text-center text-muted">加载中...</div>
                                 </div>
                             </div>
                         </div>
@@ -105,6 +112,61 @@
                     </div>
                 </div>
             </main>
+        </div>
+    </div>
+    <!-- 添加/编辑定时任务模态框 -->
+    <div class="modal fade" id="scheduleJobModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="scheduleJobModalTitle">添加定时任务</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editJobId">
+                    <div class="mb-3">
+                        <label class="form-label">任务名称</label>
+                        <input type="text" class="form-control" id="jobName" placeholder="例如：周一早高峰爬取">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Cron 表达式</label>
+                        <input type="text" class="form-control" id="jobCron" placeholder="0 9 * * *">
+                        <small class="text-muted">
+                            <i class="bi bi-question-circle"></i> 
+                            格式：分 时 日 月 周<br>
+                            示例：<br>
+                            <code>0 9 * * *</code> 每天9点<br>
+                            <code>0 9 * * 1</code> 每周一9点<br>
+                            <code>*/30 * * * *</code> 每30分钟
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">关键词</label>
+                        <select class="form-select" id="jobKeywords" multiple size="5">
+                            <option value="__ALL__" selected>所有关键词</option>
+                        </select>
+                        <small class="text-muted">按住 Ctrl 多选，选择"所有关键词"则忽略其他选择</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">页数（留空自动获取全部）</label>
+                        <input type="number" class="form-control" id="jobPages" placeholder="例如：3">
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="jobEnabled" checked>
+                            <label class="form-check-label">启用此任务</label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">描述（可选）</label>
+                        <textarea class="form-control" id="jobDescription" rows="2" placeholder="任务描述..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="saveScheduleJob()">保存</button>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -221,10 +221,6 @@ window.triggerWeekly = async function() {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadKeywords();
-});
-
 // 启动轮询
 function startPolling() {
     if (logPollingInterval) clearInterval(logPollingInterval);
@@ -245,10 +241,191 @@ function stopPolling() {
     stopLogPolling(); // zyzy0422
 }
 
-// 页面加载
+
+// ========== 定时任务管理 0428 ==========
+
+// 加载定时任务列表
+async function loadScheduleJobs() {
+    try {
+        const jobs = await apiFetch('/schedule/jobs');
+        const container = document.getElementById('scheduleJobsList');
+        
+        if (!jobs.length) {
+            container.innerHTML = '<div class="text-center text-muted py-3">暂无定时任务，点击上方按钮添加</div>';
+            return;
+        }
+        
+        container.innerHTML = jobs.map(job => `
+            <div class="card mb-2 job-card">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">
+                                ${job.enabled ? '<i class="bi bi-play-circle text-success"></i>' : '<i class="bi bi-pause-circle text-secondary"></i>'}
+                                ${escapeHtml(job.name)}
+                                <span class="badge ${job.enabled ? 'bg-success' : 'bg-secondary'} ms-2">${job.enabled ? '启用' : '禁用'}</span>
+                            </h6>
+                            <div class="small text-muted mb-2">
+                                <code class="cron-badge">${escapeHtml(job.cron)}</code>
+                                <span class="mx-2">|</span>
+                                <i class="bi bi-tag"></i> 
+                                ${job.keywords && job.keywords.length > 0 
+                                    ? (job.keywords.includes('__ALL__') || job.keywords.length === 0
+                                        ? '<span class="badge bg-primary">所有关键词</span>'
+                                        : job.keywords.map(k => `<span class="badge bg-secondary me-1">${escapeHtml(k)}</span>`).join(''))
+                                    : '<span class="badge bg-primary">所有关键词</span>'}
+                            </div>
+                            ${job.description ? `<div class="small text-muted"><i class="bi bi-file-text"></i> ${escapeHtml(job.description)}</div>` : ''}
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editScheduleJob('${job.id}')" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteScheduleJob('${job.id}')" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('加载定时任务失败:', error);
+        document.getElementById('scheduleJobsList').innerHTML = '<div class="text-center text-danger py-3">加载失败</div>';
+    }
+}
+
+// 显示添加任务模态框
+function showAddScheduleModal() {
+    document.getElementById('scheduleJobModalTitle').textContent = '添加定时任务';
+    document.getElementById('editJobId').value = '';
+    document.getElementById('jobName').value = '';
+    document.getElementById('jobCron').value = '';
+    document.getElementById('jobPages').value = '';
+    document.getElementById('jobEnabled').checked = true;
+    document.getElementById('jobDescription').value = '';
+    loadKeywordsForSelect();
+    new bootstrap.Modal(document.getElementById('scheduleJobModal')).show();
+}
+
+// 编辑定时任务
+window.editScheduleJob = async function(jobId) {
+    try {
+        const jobs = await apiFetch('/schedule/jobs');
+        const job = jobs.find(j => j.id === jobId);
+        if (!job) return;
+        
+        document.getElementById('scheduleJobModalTitle').textContent = '编辑定时任务';
+        document.getElementById('editJobId').value = job.id;
+        document.getElementById('jobName').value = job.name;
+        document.getElementById('jobCron').value = job.cron;
+        document.getElementById('jobPages').value = job.pages || '';
+        document.getElementById('jobEnabled').checked = job.enabled;
+        document.getElementById('jobDescription').value = job.description || '';
+        
+        await loadKeywordsForSelect();
+        
+        const select = document.getElementById('jobKeywords');
+        if (job.keywords && job.keywords.length > 0) {
+            if (job.keywords.includes('__ALL__') || job.keywords.length === 0) {
+                select.value = ['__ALL__'];
+            } else {
+                select.value = job.keywords;
+            }
+        } else {
+            select.value = ['__ALL__'];
+        }
+        
+        new bootstrap.Modal(document.getElementById('scheduleJobModal')).show();
+    } catch (error) {
+        alert('加载失败: ' + error.message);
+    }
+};
+
+// 加载关键词到选择框
+async function loadKeywordsForSelect() {
+    try {
+        const res = await apiFetch('/keywords');
+        const keywords = Array.isArray(res) ? res : (res.keywords || []);
+        const select = document.getElementById('jobKeywords');
+        select.innerHTML = '<option value="__ALL__">所有关键词</option>' +
+            keywords.map(kw => `<option value="${escapeHtml(kw)}">${escapeHtml(kw)}</option>`).join('');
+    } catch (error) {
+        console.error('加载关键词失败:', error);
+    }
+}
+
+// 保存定时任务
+window.saveScheduleJob = async function() {
+    const jobId = document.getElementById('editJobId').value;
+    const name = document.getElementById('jobName').value.trim();
+    const cron = document.getElementById('jobCron').value.trim();
+    const pages = document.getElementById('jobPages').value;
+    const enabled = document.getElementById('jobEnabled').checked;
+    const description = document.getElementById('jobDescription').value;
+    const selectedKeywords = Array.from(document.getElementById('jobKeywords').selectedOptions).map(opt => opt.value);
+    
+    if (!name) {
+        alert('请输入任务名称');
+        return;
+    }
+    if (!cron) {
+        alert('请输入Cron表达式');
+        return;
+    }
+    
+    const jobData = {
+        name: name,
+        cron: cron,
+        keywords: selectedKeywords,
+        pages: pages ? parseInt(pages) : null,
+        enabled: enabled,
+        description: description
+    };
+    
+    try {
+        if (jobId) {
+            await apiFetch(`/schedule/jobs/${jobId}`, {
+                method: 'PUT',
+                body: JSON.stringify(jobData)
+            });
+        } else {
+            await apiFetch('/schedule/jobs', {
+                method: 'POST',
+                body: JSON.stringify(jobData)
+            });
+        }
+        
+        bootstrap.Modal.getInstance(document.getElementById('scheduleJobModal')).hide();
+        loadScheduleJobs();
+        addLog('📅 定时任务已更新，将在下次执行时生效', 'info');
+    } catch (error) {
+        alert('保存失败: ' + error.message);
+    }
+};
+
+// 删除定时任务
+window.deleteScheduleJob = async function(jobId) {
+    if (!confirm('确定删除该定时任务吗？')) return;
+    try {
+        await apiFetch(`/schedule/jobs/${jobId}`, { method: 'DELETE' });
+        loadScheduleJobs();
+        addLog('📅 定时任务已删除', 'info');
+    } catch (error) {
+        alert('删除失败: ' + error.message);
+    }
+};
+
+// 在页面初始化时加载定时任务 0428
+// 修改原有的 DOMContentLoaded 事件，添加 loadScheduleJobs 0428
+
+
+
+// 页面加载 文件底部：0428更新
 document.addEventListener('DOMContentLoaded', () => {
     loadKeywords();
     startPolling();
+    loadScheduleJobs().catch(err => console.error('加载定时任务失败:', err)); // 加载定时任务列表
 });
 
 // 页面关闭时清理

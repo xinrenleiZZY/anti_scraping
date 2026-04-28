@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据查询 - 汇挚鑫-亚马逊爬虫</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        /* ========== 领星风格表格样式 ========== */
+        .data-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 0;
+            overflow: hidden;
+        }
+        .data-card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            background: #fff;
+        }
+        .table-erp {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .table-erp thead th {
+            background: #e2e9ef;
+            padding: 12px 14px;
+            text-align: left;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            white-space: nowrap;
+            font-size: 13px;
+        }
+        .table-erp tbody td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #f3f4f6;
+            color: #4b5563;
+            vertical-align: middle;
+        }
+        .table-erp tbody tr:nth-child(even) { background: #fafbfc; }
+        .table-erp tbody tr:hover { background: #eff6ff; cursor: pointer; }
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 400;
+            margin-right: 4px;
+            margin-bottom: 2px;
+        }
+        .tag-blue { background: #dbeafe; color: #1d4ed8; }
+        .tag-green { background: #dcfce7; color: #166534; }
+        .tag-orange { background: #ffedd5; color: #9a3412; }
+        .tag-gray { background: #f3f4f6; color: #4b5563; }
+        .tag-purple { background: #e9d5ff; color: #6b21a5; }
+        .tag-red { background: #fee2e2; color: #b91c1c; }
+        .multi-select-container { position: relative; }
+        .multi-select-btn {
+            width: 100%;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .multi-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 1000;
+            max-height: 250px;
+            overflow-y: auto;
+            display: none;
+        }
+        .multi-select-dropdown.show { display: block; }
+        .multi-select-option {
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .multi-select-option:hover { background: #f3f4f6; }
+        .multi-select-option input { margin: 0; }
+        .autocomplete-container { position: relative; }
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        .autocomplete-dropdown.show { display: block; }
+        .autocomplete-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .autocomplete-item:hover { background: #f3f4f6; }
+        .table-responsive-erp { overflow-x: auto; max-width: 100%; }
+        .pagination-erp {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+            padding: 16px 20px;
+            border-top: 1px solid #e5e7eb;
+            background: #fff;
+        }
+        .pagination-buttons { display: flex; align-items: center; gap: 8px; }
+        .pagination-erp .page-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .pagination-erp .page-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+        .pagination-erp .page-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+        .pagination-erp .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination-erp .page-info { color: #6b7280; font-size: 13px; margin: 0 12px; }
+        .pagination-jump { display: flex; align-items: center; gap: 8px; }
+        .pagination-jump input { width: 70px; padding: 4px 8px; border-radius: 6px; border: 1px solid #e5e7eb; text-align: center; }
+        .pagination-jump button { padding: 4px 12px; border-radius: 6px; border: 1px solid #e5e7eb; background: #fff; cursor: pointer; font-size: 12px; }
+        .price-current { color: #dc2626; font-weight: 500; }
+        .asin-code { font-family: monospace; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+    </style>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-dark sidebar" style="min-height:100vh; background:#0f172a !important;">
+            <div class="position-sticky pt-3">
+                <h5 class="text-white text-center py-3">汇挚鑫-亚马逊商品排名监控系统</h5>
+                <ul class="nav flex-column"></ul>
+            </div>
+        </nav>
+        <main class="col-md-10 ms-sm-auto px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 style="font-weight: 600; color: #1f2937;">数据查询
+                    <span style="font-size: 14px; font-weight: 400;padding: 2px; color: #6b7280; background: #f3f4f6; border-radius: 6px;">多维筛选 · 列自定义</span>
+                </h1>
+                <span id="api-status" class="badge bg-success">API 在线</span>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-2">
+                            <select class="form-select form-select-sm" id="filterUser" onchange="onUserChange()">
+                                <option value="">全部人员</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="multi-select-container" id="keywordMultiSelect">
+                                <button class="btn btn-outline-secondary btn-sm w-100 multi-select-btn" type="button" onclick="toggleKeywordDropdown()">
+                                    <span id="keywordSelectedText">选择关键词</span> <i class="bi bi-chevron-down"></i>
+                                </button>
+                                <div class="multi-select-dropdown" id="keywordDropdown">
+                                    <div class="p-2 border-bottom"><input type="text" class="form-control form-control-sm" id="keywordSearch" placeholder="搜索关键词..." oninput="filterKeywordOptions()"></div>
+                                    <div id="keywordOptions"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="autocomplete-container">
+                                <input type="text" class="form-control form-control-sm" id="filterAsin" placeholder="ASIN 输入联想..." autocomplete="off">
+                                <div class="autocomplete-dropdown" id="asinAutocomplete"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select form-select-sm" id="filterAdType">
+                                <option value="">全部类型</option>
+                                <option value="Organic">自然商品</option>
+                                <option value="SP">SP广告</option>
+                                <option value="SB">SB广告</option>
+                                <option value="SB_Video">SB视频广告</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                                <input type="date" class="form-control" id="filterDateFrom" placeholder="开始日期">
+                                <span class="input-group-text">至</span>
+                                <input type="date" class="form-control" id="filterDateTo" placeholder="结束日期">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <div class="multi-select-container" id="tagMultiSelect">
+                                <button class="btn btn-outline-secondary btn-sm w-100 multi-select-btn" type="button" onclick="toggleTagDropdown()">
+                                    <span id="tagSelectedText">选择标签</span> <i class="bi bi-chevron-down"></i>
+                                </button>
+                                <div class="multi-select-dropdown" id="tagDropdown">
+                                    <div class="p-2 border-bottom"><input type="text" class="form-control form-control-sm" id="tagSearch" placeholder="搜索标签..." oninput="filterTagOptions()"></div>
+                                    <div id="tagOptions"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select form-select-sm" id="filterFestival"><option value="">全部节日</option></select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select form-select-sm" id="filterFestivalType">
+                                <option value="">全部类型</option><option value="大节日">大节日</option><option value="小节日">小节日</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select class="form-select form-select-sm" id="filterHotSeason">
+                                <option value="">全部热卖期</option><option value="高峰期">🔥 高峰期</option><option value="预热期">⏰ 预热期</option><option value="平淡期">平淡期</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary btn-sm flex-grow-1" onclick="searchData(1)"><i class="bi bi-search"></i> 查询</button>
+                                <button class="btn btn-success btn-sm" onclick="exportData()"><i class="bi bi-download"></i> 导出</button>
+                                <button class="btn btn-secondary btn-sm" onclick="resetFilters()"><i class="bi bi-arrow-repeat"></i></button>
+                                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#columnSettingsModal" onclick="loadColumnSettings()"><i class="bi bi-gear"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card data-card">
+                    <div class="card-body" style="padding:0;">
+                        <div class="table-responsive-erp">
+                            <table class="table-erp" id="dataTable">
+                                <thead id="dataTableHeader"></thead>
+                                <tbody id="dataTableBody"><tr><td colspan="30" class="text-center">加载中...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination-erp" id="paginationContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+<!-- 列设置模态框 -->
+<div class="modal fade" id="columnSettingsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title"><i class="bi bi-layout-three-columns"></i> 显示列设置</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><div class="row" id="columnSettingsList"></div><hr><div><button class="btn btn-sm btn-outline-secondary" onclick="selectAllColumns()">全选</button> <button class="btn btn-sm btn-outline-secondary" onclick="deselectAllColumns()">全不选</button> <button class="btn btn-sm btn-outline-secondary" onclick="resetToDefaultColumns()">恢复默认</button></div></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="button" class="btn btn-primary" onclick="saveColumnSettings()">保存设置</button></div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// ======================= 完整列配置 (全部字段) =======================
+const ALL_COLUMNS = [
+    { key: 'id', label: 'ID', width: '60px', default: true, group: '基础信息' },
+    { key: 'keyword', label: '关键词', width: '120px', default: true, group: '基础信息' },
+    { key: 'asin', label: 'ASIN', width: '110px', default: true, group: '基础信息' },
+    { key: 'title', label: '标题', width: '300px', default: true, group: '基础信息' },
+    { key: 'url', label: '商品链接', width: '200px', default: false, group: '基础信息' },
+    { key: 'price_current', label: '当前价格', width: '90px', default: true, group: '价格信息' },
+    { key: 'price_list', label: '原价/划线价', width: '90px', default: false, group: '价格信息' },
+    { key: 'rating_stars', label: '评分', width: '80px', default: true, group: '评分信息' },
+    { key: 'rating_count', label: '评论数', width: '100px', default: true, group: '评分信息' },
+    { key: 'page', label: '页码', width: '60px', default: false, group: '排名位置' },
+    { key: 'data_index', label: '数据索引', width: '80px', default: false, group: '排名位置' },
+    { key: 'index_position', label: '页面位置', width: '90px', default: false, group: '排名位置' },
+    { key: 'ad_type', label: '广告类型', width: '100px', default: true, group: '排名位置' },
+    { key: 'ad_rank', label: '广告排名', width: '90px', default: false, group: '排名位置' },
+    { key: 'organic_rank', label: '自然排名', width: '90px', default: true, group: '排名位置' },
+    { key: 'brand_name', label: '品牌', width: '120px', default: false, group: '商品属性' },
+    { key: 'is_prime', label: 'Prime', width: '60px', default: false, group: '商品属性' },
+    { key: 'image_small', label: '小图', width: '80px', default: false, group: '图片' },
+    { key: 'image_large', label: '大图', width: '80px', default: false, group: '图片' },
+    { key: 'inner_products', label: '内嵌商品', width: '200px', default: false, group: '内嵌商品' },
+    { key: 'inner_products_count', label: '内嵌商品数', width: '100px', default: false, group: '内嵌商品' },
+    { key: 'postal_code', label: '邮编', width: '80px', default: false, group: '地理位置' },
+    { key: 'date', label: '日期', width: '100px', default: false, group: '时间戳' },
+    { key: 'scraped_at', label: '抓取时间', width: '150px', default: true, group: '时间戳' },
+    { key: 'created_at', label: '创建时间', width: '150px', default: false, group: '时间戳' },
+    { key: 'updated_at', label: '更新时间', width: '150px', default: false, group: '时间戳' },
+    { key: 'tags', label: '标签', width: '150px', default: false, group: '关键词属性' },
+    { key: 'festival', label: '节日', width: '100px', default: false, group: '关键词属性' },
+    { key: 'festival_type', label: '大/小节日', width: '100px', default: false, group: '关键词属性' },
+    { key: 'hot_season', label: '热卖期', width: '100px', default: false, group: '关键词属性' },
+    { key: 'owner', label: '负责人', width: '100px', default: false, group: '关键词属性' }
+];
+const DEFAULT_COLUMNS = ['keyword', 'asin', 'title', 'price_current', 'rating_stars', 'rating_count', 'ad_type', 'organic_rank', 'scraped_at'];
+let visibleColumns = [];
+let currentPage = 1, totalPages = 1;
+let usersData = [], selectedKeywords = [], selectedTags = [], allKeywords = [], allTags = [], allFestivals = [], allHotSeasons = [], allAsins = [];
+let API_BASE = '/api';
+
+function escapeHtml(text) { if(!text) return ''; const div=document.createElement('div'); div.textContent=text; return div.innerHTML; }
+async function apiFetch(endpoint, options={}) {
+    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+    const res = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+// 列设置
+function loadColumnSettings() {
+    const saved = localStorage.getItem('data_visible_columns');
+    visibleColumns = saved ? JSON.parse(saved) : [...DEFAULT_COLUMNS];
+    renderColumnSettingsPanel();
+}
+function renderColumnSettingsPanel() {
+    const container = document.getElementById('columnSettingsList');
+    if(!container) return;
+    const groups = {};
+    ALL_COLUMNS.forEach(c => { if(!groups[c.group]) groups[c.group]=[]; groups[c.group].push(c); });
+    let html='';
+    for(let [gname, cols] of Object.entries(groups)) {
+        html+=`<div class="mt-3 mb-2"><h6 class="text-muted">${gname}</h6><div class="row">`;
+        cols.forEach(col=>{
+            html+=`<div class="col-md-3 mb-2"><div class="form-check"><input class="form-check-input" type="checkbox" value="${col.key}" id="col_${col.key}" ${visibleColumns.includes(col.key)?'checked':''}><label class="form-check-label" for="col_${col.key}"><span class="badge bg-secondary">${col.label}</span></label></div></div>`;
+        });
+        html+=`</div><hr class="my-2"></div>`;
+    }
+    container.innerHTML = html;
+}
+function selectAllColumns() { ALL_COLUMNS.forEach(c=>{ let cb=document.getElementById(`col_${c.key}`); if(cb) cb.checked=true; }); }
+function deselectAllColumns() { ALL_COLUMNS.forEach(c=>{ let cb=document.getElementById(`col_${c.key}`); if(cb) cb.checked=false; }); }
+function resetToDefaultColumns() { ALL_COLUMNS.forEach(c=>{ let cb=document.getElementById(`col_${c.key}`); if(cb) cb.checked=DEFAULT_COLUMNS.includes(c.key); }); }
+function saveColumnSettings() {
+    visibleColumns = ALL_COLUMNS.filter(c=>document.getElementById(`col_${c.key}`)?.checked).map(c=>c.key);
+    localStorage.setItem('data_visible_columns', JSON.stringify(visibleColumns));
+    bootstrap.Modal.getInstance(document.getElementById('columnSettingsModal')).hide();
+    searchData(currentPage);
+}
+function renderTableHeader() { return `<thead><tr>${visibleColumns.map(key=>`<th>${ALL_COLUMNS.find(c=>c.key===key)?.label || key}</th>`).join('')}</tr></thead>`; }
+// 增强的表格行渲染（支持所有字段）
+function renderTableRow(item) {
+    const cells = visibleColumns.map(key => {
+        let val = item[key];
+        if(key === 'rating_stars' && val) return `<td>${val} ★</td>`;
+        if(key === 'rating_count' && val) return `<td>${Number(val).toLocaleString()}</td>`;
+        if(key === 'ad_type') {
+            let cls = val==='Organic'?'bg-success':val==='SP'?'bg-primary':val==='SB'?'bg-info text-dark':'bg-secondary';
+            return `<td><span class="badge ${cls}">${val||'-'}</span></td>`;
+        }
+        if(key === 'is_prime') return `<td>${val===true?'<i class="bi bi-check-lg text-primary"></i> Prime':'-'}</td>`;
+        if(key === 'url' && val && val!=='N/A') return `<td><a href="${val}" target="_blank"><i class="bi bi-box-arrow-up-right"></i> 链接</a></td>`;
+        if(key === 'url') return `<td>-</td>`;
+        if(key === 'asin') return `<td><code class="asin-code">${escapeHtml(val||'-')}</code> <a href="https://www.amazon.com/dp/${val}" target="_blank"><i class="bi bi-box-arrow-up-right"></i></a></td>`;
+        if(key === 'title') return `<td title="${escapeHtml(val||'')}" style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(val||'-')}</td>`;
+        if(key === 'image_small' && val) return `<td><img src="${val}" style="width:40px; height:auto;" onerror="this.style.display='none'"></td>`;
+        if(key === 'image_large' && val) return `<td><a href="${val}" target="_blank">查看大图</a></td>`;
+        if(key === 'inner_products' && val) {
+            try {
+                let products = Array.isArray(val) ? val : JSON.parse(val);
+                if(products && products.length) return `<td><span class="badge bg-secondary" style="cursor:pointer;" onclick='alert(JSON.stringify(${JSON.stringify(products).slice(0,200)}))'>${products.length}个商品</span></td>`;
+            } catch(e){}
+            return `<td>-</td>`;
+        }
+        if(key === 'inner_products_count') return `<td>${val>0?`<span class="badge bg-secondary">${val}个</span>`:'-'}</td>`;
+        if(key === 'tags' && Array.isArray(val)) return `<td>${val.map(t=>`<span class="tag tag-blue">${escapeHtml(t)}</span>`).join('') || '-'}</td>`;
+        if(key === 'festival_type') {
+            let cls = val==='大节日'?'tag-red':'tag-orange';
+            return `<td><span class="tag ${cls}">${val||'-'}</span></td>`;
+        }
+        if(key === 'hot_season') {
+            let icon = val==='高峰期'?'🔥 ':val==='预热期'?'⏰ ':'';
+            let cls = val==='高峰期'?'tag-red':val==='预热期'?'tag-orange':'tag-gray';
+            return `<td><span class="tag ${cls}">${icon}${val||'-'}</span></td>`;
+        }
+        if(key === 'owner') return `<td><span class="tag tag-purple">${escapeHtml(val||'-')}</span></td>`;
+        if(key === 'brand_name') return `<td><span class="text-muted">${escapeHtml(val||'-')}</span></td>`;
+        if((key === 'created_at' || key === 'updated_at' || key === 'scraped_at') && val) return `<td>${new Date(val).toLocaleString()}</td>`;
+        if(key === 'date' && val) return `<td>${new Date(val).toLocaleDateString()}</td>`;
+        if(val === undefined || val === null || val === '') return `<td>-</td>`;
+        return `<td>${escapeHtml(String(val))}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+}
+// 筛选相关
+async function loadUsers() {
+    try { usersData = await apiFetch('/users'); const sel=document.getElementById('filterUser'); if(sel) sel.innerHTML='<option value="">全部人员</option>'+usersData.map(u=>`<option value="${u.id}">${escapeHtml(u.name)}</option>`).join('');
+    } catch(e){ console.error(e);}
+}
+async function loadKeywordsAll() {
+    try { const res = await apiFetch('/keywords'); allKeywords = Array.isArray(res)?res:(res.keywords||[]); document.getElementById('keywordOptions').innerHTML = allKeywords.map(kw=>`<label class="multi-select-option"><input type="checkbox" value="${escapeHtml(kw)}" onchange="toggleKeywordSelection('${escapeHtml(kw)}', this.checked)"><span>${escapeHtml(kw)}</span></label>`).join('');
+    } catch(e){}
+}
+async function loadFilterOptions() {
+    try {
+        const kwList = allKeywords.length?allKeywords:(await apiFetch('/keywords')||[]);
+        const arr = Array.isArray(kwList)?kwList:(kwList.keywords||[]);
+        const tagsSet=new Set(), festSet=new Set(), hotSet=new Set();
+        for(let kw of arr.slice(0,100)){
+            try{
+                let tags=await apiFetch(`/keywords/tags?keyword=${encodeURIComponent(kw)}`).catch(()=>[]);
+                let fest=await apiFetch(`/keywords/festival?keyword=${encodeURIComponent(kw)}`).catch(()=>'');
+                let hot=await apiFetch(`/keywords/hot-season?keyword=${encodeURIComponent(kw)}`).catch(()=>'');
+                if(Array.isArray(tags)) tags.forEach(t=>tagsSet.add(t));
+                if(fest) festSet.add(fest);
+                if(hot) hotSet.add(hot);
+            }catch(e){}
+        }
+        allTags = Array.from(tagsSet).sort(); allFestivals = Array.from(festSet).sort(); allHotSeasons = Array.from(hotSet).sort();
+        document.getElementById('tagOptions').innerHTML = allTags.map(t=>`<label class="multi-select-option"><input type="checkbox" value="${escapeHtml(t)}" onchange="toggleTagSelection('${escapeHtml(t)}', this.checked)"><span>${escapeHtml(t)}</span></label>`).join('');
+        const fSel = document.getElementById('filterFestival'); if(fSel) fSel.innerHTML='<option value="">全部节日</option>'+allFestivals.map(f=>`<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+        const hSel = document.getElementById('filterHotSeason'); if(hSel) hSel.innerHTML='<option value="">全部热卖期</option>'+allHotSeasons.map(h=>`<option value="${escapeHtml(h)}">${h==='高峰期'?'🔥 ':h==='预热期'?'⏰ ':''}${escapeHtml(h)}</option>`).join('');
+    } catch(e){}
+}
+window.toggleKeywordDropdown = ()=>document.getElementById('keywordDropdown')?.classList.toggle('show');
+window.toggleTagDropdown = ()=>document.getElementById('tagDropdown')?.classList.toggle('show');
+window.toggleKeywordSelection = function(kw,chk){
+    if(chk){ if(!selectedKeywords.includes(kw)) selectedKeywords.push(kw); }
+    else selectedKeywords = selectedKeywords.filter(k=>k!==kw);
+    document.getElementById('keywordSelectedText').innerText = selectedKeywords.length?`已选 ${selectedKeywords.length} 个`:'选择关键词';
+};
+window.toggleTagSelection = function(tag,chk){
+    if(chk){ if(!selectedTags.includes(tag)) selectedTags.push(tag); }
+    else selectedTags = selectedTags.filter(t=>t!==tag);
+    document.getElementById('tagSelectedText').innerText = selectedTags.length?`已选 ${selectedTags.length} 个`:'选择标签';
+};
+window.filterKeywordOptions = function(){
+    let s=(document.getElementById('keywordSearch')?.value||'').toLowerCase();
+    document.querySelectorAll('#keywordOptions .multi-select-option').forEach(opt=>opt.style.display=opt.innerText.toLowerCase().includes(s)?'flex':'none');
+};
+window.filterTagOptions = function(){
+    let s=(document.getElementById('tagSearch')?.value||'').toLowerCase();
+    document.querySelectorAll('#tagOptions .multi-select-option').forEach(opt=>opt.style.display=opt.innerText.toLowerCase().includes(s)?'flex':'none');
+};
+window.onUserChange = function(){ searchData(1); };
+window.searchData = async function(page=1){
+    currentPage=page;
+    const params = new URLSearchParams({page:currentPage, limit:50});
+    if(selectedKeywords.length) selectedKeywords.forEach(kw=>params.append('keywords',kw));
+    if(selectedTags.length) selectedTags.forEach(t=>params.append('tags',t));
+    const userId=document.getElementById('filterUser').value;
+    if(userId && selectedKeywords.length===0){
+        const user=usersData.find(u=>u.id==userId);
+        if(user && user.keywords) user.keywords.forEach(kw=>params.append('keywords',kw));
+    }
+    let asin=document.getElementById('filterAsin').value.trim(); if(asin) params.append('asin',asin);
+    let adType=document.getElementById('filterAdType').value; if(adType) params.append('ad_type',adType);
+    let dFrom=document.getElementById('filterDateFrom').value; if(dFrom) params.append('date_from',dFrom);
+    let dTo=document.getElementById('filterDateTo').value; if(dTo) params.append('date_to',dTo);
+    let festival=document.getElementById('filterFestival')?.value; if(festival) params.append('festival',festival);
+    let festType=document.getElementById('filterFestivalType')?.value; if(festType) params.append('festival_type',festType);
+    let hot=document.getElementById('filterHotSeason')?.value; if(hot) params.append('hot_season',hot);
+    try{
+        const res = await apiFetch(`/results?${params.toString()}`);
+        document.getElementById('dataTableHeader').innerHTML = renderTableHeader();
+        const tbody=document.getElementById('dataTableBody');
+        if(res.data && res.data.length){
+            tbody.innerHTML = res.data.map(item=>renderTableRow(item)).join('');
+            totalPages = res.total_pages||1;
+            renderPagination();
+        } else tbody.innerHTML = `<tr><td colspan="${visibleColumns.length||10}" class="text-center">暂无数据</td></tr>`;
+    } catch(err){ console.error(err); document.getElementById('dataTableBody').innerHTML='<tr><td colspan="30" class="text-danger">加载失败</td></tr>'; }
+};
+function renderPagination(){
+    const c=document.getElementById('paginationContainer'); if(!c) return;
+    let btns=`<button class="page-btn" onclick="searchData(1)" ${currentPage===1?'disabled':''}><i class="bi bi-chevron-double-left"></i></button>
+              <button class="page-btn" onclick="searchData(${currentPage-1})" ${currentPage===1?'disabled':''}><i class="bi bi-chevron-left"></i></button>`;
+    let s=Math.max(1,currentPage-2), e=Math.min(totalPages,s+4); s=Math.max(1,e-4);
+    for(let i=s;i<=e;i++) btns+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="searchData(${i})">${i}</button>`;
+    btns+=`<button class="page-btn" onclick="searchData(${currentPage+1})" ${currentPage===totalPages?'disabled':''}><i class="bi bi-chevron-right"></i></button>
+           <button class="page-btn" onclick="searchData(${totalPages})" ${currentPage===totalPages?'disabled':''}><i class="bi bi-chevron-double-right"></i></button>`;
+    c.innerHTML=`<div class="pagination-buttons">${btns}</div><div class="page-info">第 ${currentPage} / ${totalPages} 页</div><div class="pagination-jump"><span>跳转</span><input id="jumpPage" type="number" min="1" max="${totalPages}"><button onclick="let v=parseInt(document.getElementById('jumpPage')?.value); if(v>=1&&v<=totalPages) searchData(v);">GO</button></div>`;
+}
+window.resetFilters = function(){
+    document.getElementById('filterUser').value=''; selectedKeywords=[]; selectedTags=[];
+    document.getElementById('keywordSelectedText').innerText='选择关键词'; document.getElementById('tagSelectedText').innerText='选择标签';
+    document.querySelectorAll('#keywordOptions input').forEach(cb=>cb.checked=false);
+    document.querySelectorAll('#tagOptions input').forEach(cb=>cb.checked=false);
+    document.getElementById('filterAsin').value=''; document.getElementById('filterAdType').value='';
+    document.getElementById('filterDateFrom').value=''; document.getElementById('filterDateTo').value='';
+    if(document.getElementById('filterFestival')) document.getElementById('filterFestival').value='';
+    if(document.getElementById('filterFestivalType')) document.getElementById('filterFestivalType').value='';
+    if(document.getElementById('filterHotSeason')) document.getElementById('filterHotSeason').value='';
+    searchData(1);
+};
+window.exportData = function(){
+    let url=`${API_BASE}/results/export?`;
+    let params=[];
+    if(selectedKeywords.length) selectedKeywords.forEach(kw=>params.push(`keywords=${encodeURIComponent(kw)}`));
+    if(selectedTags.length) selectedTags.forEach(t=>params.push(`tags=${encodeURIComponent(t)}`));
+    let asin=document.getElementById('filterAsin').value; if(asin) params.push(`asin=${encodeURIComponent(asin)}`);
+    let ad=document.getElementById('filterAdType').value; if(ad) params.push(`ad_type=${encodeURIComponent(ad)}`);
+    let fest=document.getElementById('filterFestival')?.value; if(fest) params.push(`festival=${encodeURIComponent(fest)}`);
+    let ft=document.getElementById('filterFestivalType')?.value; if(ft) params.push(`festival_type=${encodeURIComponent(ft)}`);
+    let hot=document.getElementById('filterHotSeason')?.value; if(hot) params.push(`hot_season=${encodeURIComponent(hot)}`);
+    let uid=document.getElementById('filterUser').value;
+    if(uid && selectedKeywords.length===0){
+        let u=usersData.find(u=>u.id==uid);
+        if(u && u.keywords) u.keywords.forEach(kw=>params.push(`keywords=${encodeURIComponent(kw)}`));
+    }
+    window.open(url+params.join('&'),'_blank');
+};
+async function initAsinAutocomplete(){
+    const inp=document.getElementById('filterAsin'), drop=document.getElementById('asinAutocomplete');
+    if(!inp) return;
+    try{ let res=await apiFetch('/asins'); allAsins=Array.isArray(res)?res:[]; }catch(e){ allAsins=[]; }
+    inp.addEventListener('input',function(){
+        let v=this.value.toUpperCase();
+        if(!v){ drop.classList.remove('show'); return; }
+        let f=allAsins.filter(a=>a&&a.toUpperCase().includes(v)).slice(0,15);
+        if(f.length){ drop.innerHTML=f.map(asin=>`<div class="autocomplete-item" onclick="selectAsin('${asin}')">${escapeHtml(asin)}</div>`).join(''); drop.classList.add('show');}
+        else drop.classList.remove('show');
+    });
+}
+window.selectAsin=function(asin){ document.getElementById('filterAsin').value=asin; document.getElementById('asinAutocomplete').classList.remove('show'); searchData(1); };
+document.addEventListener('click', function(e){
+    if(!document.getElementById('keywordMultiSelect')?.contains(e.target)) document.getElementById('keywordDropdown')?.classList.remove('show');
+    if(!document.getElementById('tagMultiSelect')?.contains(e.target)) document.getElementById('tagDropdown')?.classList.remove('show');
+    if(!document.querySelector('.autocomplete-container')?.contains(e.target)) document.getElementById('asinAutocomplete')?.classList.remove('show');
+});
+window.loadColumnSettings = loadColumnSettings;
+window.selectAllColumns = selectAllColumns;
+window.deselectAllColumns = deselectAllColumns;
+window.resetToDefaultColumns = resetToDefaultColumns;
+window.saveColumnSettings = saveColumnSettings;
+// 启动
+document.addEventListener('DOMContentLoaded', async()=>{
+    await loadUsers();
+    await loadKeywordsAll();
+    await loadFilterOptions();
+    await initAsinAutocomplete();
+    loadColumnSettings();
+    searchData(1);
+});
+</script>
+</body>
+</html>
