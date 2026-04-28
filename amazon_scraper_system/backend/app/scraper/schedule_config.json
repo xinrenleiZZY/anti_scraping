@@ -1,0 +1,30 @@
+{
+  "jobs": [
+    {
+      "id": "daily_job",
+      "name": "每日爬取",
+      "enabled": true,
+      "cron": "0 6 * * *",
+      "keywords": [
+        "__ALL__"
+      ],
+      "pages": 5,
+      "description": "每天早上6点自动爬取所有关键词",
+      "created_at": null,
+      "updated_at": "2026-04-29T09:16:11.648591"
+    },
+    {
+      "id": "weekly_job",
+      "name": "每周爬取",
+      "enabled": true,
+      "cron": "0 6 * * 1",
+      "keywords": [
+        "__ALL__"
+      ],
+      "pages": 5,
+      "description": "每周一早上6点自动爬取所有关键词",
+      "created_at": null,
+      "updated_at": "2026-04-29T09:16:56.812022"
+    }
+  ]
+}
