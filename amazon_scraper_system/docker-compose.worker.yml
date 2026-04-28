@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  worker:
+    image: python:3.11-slim
+    container_name: amazon_scraper_worker
+    working_dir: /app
+    environment:
+      WORKER_ID: ${WORKER_ID:-worker001}
+      WORKER_PROXY: ${WORKER_PROXY:-}
+      DATABASE_URL: postgresql://admin:123456@host.docker.internal:5200/amazon_scraper
+      NAS_SHARE_PATH: //192.168.40.3/钟正洋/amazon_scraper
+      INPUT_FOLDER: /app/amazon_data
+      PROCESSED_DATA_DIR: /app/processed_data
+      TZ: Asia/Shanghai
+    volumes:
+      - ./backend:/app
+      - //192.168.40.3/钟正洋/amazon_scraper:/nas
+    command: >
+      sh -c "
+      pip install --no-cache-dir -r requirements_worker.txt &&
+      python worker_daemon.py
+      "
+    restart: unless-stopped
+    cpus: '2'
+    mem_limit: 4g
