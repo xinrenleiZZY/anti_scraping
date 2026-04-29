@@ -8,10 +8,11 @@ import csv
 import io
 import json
 from pathlib import Path
-
+import logging
 from app.database import get_db
 from app.models import RawSearchResult, ScrapingTask, KeywordAttribute, UserKeyword, User
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # 配置文件路径
@@ -122,7 +123,9 @@ def apply_keyword_filters(
     
     # 6. 其他直接筛选
     if asin:
-        query = query.filter(RawSearchResult.asin == asin)
+        logger.info(f"ASIN 筛选: {asin}")
+        query = query.filter(RawSearchResult.asin.ilike(f'%{asin}%'))
+        logger.info(f"SQL: {query}")
     if ad_type:
         query = query.filter(RawSearchResult.ad_type == ad_type)
     if date_from:
@@ -253,8 +256,12 @@ def get_results(
                 'available_tags': [], 'available_festivals': [], 
                 'available_festival_types': [], 'available_hot_seasons': []
             }
-    
-    # 6. 收集剩余选项（基于全量数据）
+    # # 6. ASIN 特殊处理：支持多个 ASIN 逗号分隔
+    # if asin and ',' in asin:
+    #     asin_list = [a.strip() for a in asin.split(',')]
+    #     query = query.filter(RawSearchResult.asin.in_(asin_list))
+
+    # 7. 收集剩余选项（基于全量数据）
     available_options = collect_available_options(
         db, keyword, keywords, tags, festival, festival_type,
         hot_season, asin, ad_type, date_from, date_to
@@ -265,7 +272,7 @@ def get_results(
     total_pages = (total + limit - 1) // limit
     offset = (page - 1) * limit
     items = query.order_by(RawSearchResult.scraped_at.desc()).offset(offset).limit(limit).all()
-    
+
     # 8. 构建返回数据
     data = []
     for item in items:
@@ -464,7 +471,8 @@ def export_results(
             return StreamingResponse(iter(['']), media_type='text/csv')
     
     if asin:
-        query = query.filter(RawSearchResult.asin == asin)
+        query = query.filter(RawSearchResult.asin.ilike(f'%{asin}%'))
+        
     if ad_type:
         query = query.filter(RawSearchResult.ad_type == ad_type)
     

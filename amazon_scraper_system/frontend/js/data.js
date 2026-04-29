@@ -16,6 +16,7 @@ let keywordFestivalMap = {};
 let keywordFestivalTypeMap = {};
 let keywordHotSeasonMap = {};
 let keywordOwnerMap = {};
+let isUpdatingOptions = false;
 
 // Tom Select 实例存储
 let tomSelectInstances = {};
@@ -376,13 +377,13 @@ async function loadFilterOptionsFromBackend() {
         
         // 更新 Tom Select 选项
         if (tomSelectInstances.tags && window.allTags.length > 0) {
-            updateTomSelectOptions('tags', window.allTags);
+            updateTomSelectOptions('tags', window.allTags, false); // tags 不需要空值选项
         }
         if (tomSelectInstances.festival && window.allFestivals.length > 0) {
-            updateTomSelectOptions('festival', window.allFestivals);
+            updateTomSelectOptions('festival', window.allFestivals, true);// 需要空值选项
         }
         if (tomSelectInstances.hotSeason && window.allHotSeasons.length > 0) {
-            updateTomSelectOptions('hotSeason', window.allHotSeasons);
+            updateTomSelectOptions('hotSeason', window.allHotSeasons, true);// 需要空值选项
         }
         
         // 更新节日类型下拉框
@@ -412,30 +413,41 @@ function initTomSelects() {
         maxItems: null,
         placeholder: '选择关键词...',
         plugins: ['remove_button', 'dropdown_input'],
-        create: false,
+        create: true,
+        createFilter: (input) => {
+        // 允许任何输入（ASIN 通常是 10 个字符）
+        return input.length >= 10;
+        },
+        onItemAdd:() => searchData(1),
         onChange: () => searchData(1)
     });
-    
+
     // ASIN 多选（支持远程搜索）
     tomSelectInstances.asin = new TomSelect('#filterAsin', {
         maxItems: 10,
         placeholder: '搜索ASIN...',
         plugins: ['remove_button', 'dropdown_input'],
-        create: false,
+        create: true,
+        createFilter: (input) => {
+        // 允许任何输入（ASIN 通常是 10 个字符）
+        return input.length >= 10;
+        },
         load: async (query, callback) => {
             if (!query || query.length < 2) {
                 callback();
                 return;
             }
             try {
-                const result = await apiFetch(`/results?limit=200`);
+                const result = await apiFetch(`/results?limit=2000`);
                 const asins = [...new Set((result.data || []).map(item => item.asin).filter(a => a && a.toUpperCase().includes(query.toUpperCase())))];
                 callback(asins.map(asin => ({ value: asin, text: asin })));
             } catch(e) {
                 callback();
             }
         },
+        onItemAdd:() => searchData(1),
         onChange: () => searchData(1)
+
     });
     
     // 广告类型多选
@@ -453,6 +465,7 @@ function initTomSelects() {
         plugins: ['remove_button', 'dropdown_input'],
         create: false,
         onChange: (values) => {
+            if (isUpdatingOptions) return; 
             window.selectedTags = values;
             searchData(1);
         }
@@ -464,32 +477,69 @@ function initTomSelects() {
         placeholder: '选择节日...',
         plugins: ['remove_button', 'dropdown_input'],
         create: false,
-        onChange: () => searchData(1)
+        onChange: () => {if (isUpdatingOptions) return; searchData(1)}
     });
-    
+    // 添加空值选项
+    tomSelectInstances.festival.addOption({ value: '', text: '其余节日' });
     // 热卖期多选
     tomSelectInstances.hotSeason = new TomSelect('#filterHotSeason', {
         maxItems: null,
         placeholder: '选择热卖期...',
         plugins: ['remove_button', 'dropdown_input'],
         create: false,
-        onChange: () => searchData(1)
+        onChange: () => {if (isUpdatingOptions) return; searchData(1)}
     });
+     // 添加空值选项
+    tomSelectInstances.hotSeason.addOption({ value: '', text: '其余热卖期' });
 }
 
 // 更新 Tom Select 选项
-function updateTomSelectOptions(instanceName, options) {
+function updateTomSelectOptions(instanceName, options, includeEmpty = true) {
     const instance = tomSelectInstances[instanceName];
     if (!instance) return;
     
-    const currentValues = instance.getValue();
-    instance.clearOptions();
-    options.forEach(opt => {
-        instance.addOption({ value: opt, text: opt });
-    });
-    instance.setValue(currentValues);
-}
+    isUpdatingOptions = true;
 
+    // 临时禁用 onChange 事件
+    const originalOnChange = instance.settings.onChange;
+    instance.settings.onChange = null;
+
+    const currentValues = instance.getValue();
+    // 确保 currentValues 是数组
+    const currentValuesArray = Array.isArray(currentValues) ? currentValues : (currentValues ? [currentValues] : []);
+    instance.clearOptions();
+    // 添加空值选项（如"全部节日"）
+    if (includeEmpty) {
+        instance.addOption({ value: '', text: getEmptyText(instanceName) });
+    }
+    options.forEach(opt => {
+        if (opt !== '' && opt !== null && opt !== undefined) {
+            instance.addOption({ value: opt, text: opt });
+        }
+    });
+    // 恢复之前选中的值（只保留仍然存在的选项）
+    const validValues = currentValuesArray.filter(v => {
+        if (v === '') return includeEmpty;
+        return options.includes(v);
+    });
+    if (validValues.length > 0) {
+        instance.setValue(validValues, false); // false 表示不触发 onChange
+    }
+    // 恢复 onChange 事件
+    instance.settings.onChange = originalOnChange;
+}
+// 获取空值选项的显示文本
+function getEmptyText(instanceName) {
+    const texts = {
+        'tags': '选择标签...',
+        'festival': '全部节日',
+        'hotSeason': '全部热卖期',
+        'keyword': '选择关键词...',
+        'asin': '搜索ASIN...',
+        'adType': '选择类型...'
+    };
+    return texts[instanceName] || '请选择';
+}
 // ========== 搜索数据 - Tom Select 版本 ==========
 window.searchData = async function(page = 1) {
     currentPage = page;
@@ -553,13 +603,13 @@ window.searchData = async function(page = 1) {
             renderPagination();
             
             if (result.available_tags && tomSelectInstances.tags) {
-                updateTomSelectOptions('tags', result.available_tags);
+                updateTomSelectOptions('tags', result.available_tags, false); // 标签不需要空值选项
             }
             if (result.available_festivals && tomSelectInstances.festival) {
-                updateTomSelectOptions('festival', result.available_festivals);
+                updateTomSelectOptions('festival', result.available_festivals, true);
             }
             if (result.available_hot_seasons && tomSelectInstances.hotSeason) {
-                updateTomSelectOptions('hotSeason', result.available_hot_seasons);
+                updateTomSelectOptions('hotSeason', result.available_hot_seasons, true);
             }
         } else {
             const colSpan = visibleColumns.length || 10;
