@@ -1,6 +1,7 @@
 // 侧边栏配置
 const sidebarItems = [
     { href: 'index.html', icon: 'bi-speedometer2', text: '仪表盘' },
+    { href: 'dashboard_asin.html', icon: 'Bootstrap Icons', text: '可视化大屏' },
     { href: 'keywords.html', icon: 'bi-tags', text: '关键词管理' },
     { href: 'keywords_overview.html', icon: 'bi-list-ul', text: '关键词总览' },
     { href: 'scrape.html', icon: 'bi-cloud-upload', text: '爬取控制' },
