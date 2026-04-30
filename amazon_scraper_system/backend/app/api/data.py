@@ -4,6 +4,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, Query as SQLAlchemyQuery
 from typing import Optional, List, Tuple, Set
 from datetime import datetime
+from datetime import timedelta
 import csv
 import io
 import json
@@ -496,3 +497,49 @@ def export_results(
         media_type='text/csv',
         headers={'Content-Disposition': 'attachment; filename="results.csv"'}
     )
+
+# 可视化大屏接口
+@router.get("/results/asin-analysis")
+def get_asin_analysis(
+    asin: str = Query(..., description="ASIN代码"),
+    days: int = Query(30, description="天数范围"),
+    keywords: Optional[List[str]] = Query(None, description="关键词筛选"),
+    db: Session = Depends(get_db)
+):
+    """获取ASIN的分析数据：排名趋势、价格变化"""
+    
+    # 计算开始日期
+    start_date = datetime.now().date() - timedelta(days=days)
+    
+    # 构建查询
+    query = db.query(RawSearchResult).filter(
+        RawSearchResult.asin.ilike(f'%{asin}%'),
+        RawSearchResult.date >= start_date
+    )
+    
+    # 关键词筛选
+    if keywords and len(keywords) > 0:
+        query = query.filter(RawSearchResult.keyword.in_(keywords))
+    
+    # 按时间排序
+    records = query.order_by(RawSearchResult.scraped_at.asc()).all()
+    
+    # 构建返回数据
+    data = []
+    for r in records:
+        data.append({
+            'scraped_at': r.scraped_at.isoformat(),
+            'keyword': r.keyword,
+            'organic_rank': r.organic_rank,
+            'ad_rank': r.ad_rank,
+            'price_current': r.price_current,
+            'rating_stars': float(r.rating_stars) if r.rating_stars else None,
+            'rating_count': r.rating_count
+        })
+    
+    return {
+        'asin': asin,
+        'days': days,
+        'total_records': len(data),
+        'records': data
+    }
