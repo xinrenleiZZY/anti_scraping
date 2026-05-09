@@ -291,6 +291,8 @@ def get_results(
             'ad_rank': item.ad_rank,
             'organic_rank': item.organic_rank,
             'page': item.page,
+            'data_index': item.data_index,
+            'index_position': item.index_position,
             'scraped_at': item.scraped_at.isoformat() if item.scraped_at else None,
             'date': item.scraped_at.strftime('%Y-%m-%d') if item.scraped_at else None,
             'tags': keyword_tags.get(kw, []),
