@@ -13,6 +13,7 @@ from app.api.scraping import router as scraping_router
 from app.api.keywords import router as keywords_router
 from app.api.distributed import router as distributed_router# ZY0422
 from app.api.users import router as users_router #YU 421
+from app.api.asin_monitor import router as asin_monitor_router
 # zy 0422 添加日志路由
 from app.api import logs
 
@@ -38,6 +39,7 @@ app.include_router(scraping_router, prefix="/api", tags=["爬取控制"])
 app.include_router(keywords_router, prefix="/api", tags=["关键词管理"])
 app.include_router(distributed_router, prefix="/api", tags=["分布式爬取"])# ZY 0422
 app.include_router(users_router, prefix="/api", tags=["人员管理"]) #YU 421
+app.include_router(asin_monitor_router, prefix="/api", tags=["ASIN监控"])
 app.include_router(logs.router, prefix="/api", tags=["logs"])# zy 0422 添加日志路由
 
 
@@ -143,6 +145,13 @@ async def startup_event():
     logger.info("启动 Cron 定时任务调度器...")
     scheduler.start()
     setup_cron_jobs()
+    # 每30分钟检查一次 ASIN 监控任务
+    from app.api.asin_monitor import run_due_monitor_tasks
+    from app.database import get_db as db_factory
+    scheduler.add_job(
+        lambda: run_due_monitor_tasks(db_factory),
+        "interval", minutes=30, id="asin_monitor_checker", replace_existing=True
+    )
     logger.info("✅ Cron 定时任务调度器已启动")
 
 

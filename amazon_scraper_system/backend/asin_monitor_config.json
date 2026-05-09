@@ -1,0 +1,19 @@
+[
+  {
+    "id": "am_20260509_163923",
+    "asin": "B0CZRWJNXJ",
+    "monitor_name": "IT-钟正洋",
+    "rank_types": [
+      "organic_rank",
+      "ad_rank_sp",
+      "ad_rank_sb",
+      "ad_rank_video"
+    ],
+    "interval_hours": 2.0,
+    "days": 30,
+    "enabled": true,
+    "created_at": "2026-05-09T16:39:23.360869",
+    "last_run": "2026-05-09T16:53:53.160733",
+    "next_run": "2026-05-09T18:53:53.160752"
+  }
+]

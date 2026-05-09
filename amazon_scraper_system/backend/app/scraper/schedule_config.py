@@ -136,6 +136,33 @@ def toggle_schedule_job(job_id: str, enabled: bool) -> Optional[Dict]:
     return update_schedule_job(job_id, {'enabled': enabled})
 
 
+def record_job_run(job_id: str, status: str = 'success', note: str = '') -> bool:
+    """记录任务运行时间（最多保留50条）"""
+    config = load_schedule_config()
+    for job in config['jobs']:
+        if job['id'] == job_id:
+            if 'run_history' not in job:
+                job['run_history'] = []
+            job['run_history'].insert(0, {
+                'time': datetime.now().isoformat(),
+                'status': status,
+                'note': note
+            })
+            job['run_history'] = job['run_history'][:50]
+            save_schedule_config(config)
+            return True
+    return False
+
+
+def get_job_run_history(job_id: str) -> list:
+    """获取任务运行记录"""
+    config = load_schedule_config()
+    for job in config['jobs']:
+        if job['id'] == job_id:
+            return job.get('run_history', [])
+    return []
+
+
 # Cron 表达式验证
 def validate_cron(cron: str) -> bool:
     """验证 Cron 表达式是否有效"""

@@ -291,27 +291,39 @@
                     </div>
                 </div>
 
-                <!-- 统计卡片（4个一行） -->
+                <!-- 统计卡片（6个一行） -->
                 <div class="row g-2 mb-3" id="statsCards" style="display: none;">
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
                         <div class="stat-card">
                             <div class="stat-value" id="totalKeywords">-</div>
                             <div class="stat-label">涉及关键词数</div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
                         <div class="stat-card">
                             <div class="stat-value text-success" id="avgRank">-</div>
                             <div class="stat-label">平均自然排名</div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
+                        <div class="stat-card">
+                            <div class="stat-value text-warning" id="avgAdRank">-</div>
+                            <div class="stat-label">平均广告排名(SP)</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <div class="stat-card">
+                            <div class="stat-value text-danger" id="avgVideoRank">-</div>
+                            <div class="stat-label">平均视频排名</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-2">
                         <div class="stat-card">
                             <div class="stat-value text-warning" id="currentPrice">-</div>
                             <div class="stat-label">当前价格</div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
                         <div class="stat-card">
                             <div class="stat-value text-info" id="priceRange">-</div>
                             <div class="stat-label">价格区间</div>
@@ -341,22 +353,77 @@
                             <div class="text-secondary small text-center mt-1">排名数值越小表示排名越靠前</div>
                         </div>
 
-                        <!-- 图2：价格变化趋势 -->
+                        <!-- 图2：广告排名趋势（SP） -->
                         <div class="chart-container">
                             <div class="chart-title">
-                                <i class="bi bi-currency-dollar text-green"></i> 价格变化趋势
+                                <i class="bi bi-megaphone text-warning"></i> 广告排名趋势（SP）
+                            </div>
+                            <canvas id="adRankChart" class="small-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="charts-grid2">
+                        <!-- 图3：视频广告排名趋势（SB_Video） -->
+                        <div class="chart-container">
+                            <div class="chart-title">
+                                <i class="bi bi-play-circle text-danger"></i> 视频广告排名趋势（SB_Video）
+                            </div>
+                            <canvas id="videoAdRankChart" class="small-chart"></canvas>
+                        </div>
+
+                        <!-- 图4：品牌广告排名趋势（SB） -->
+                        <div class="chart-container">
+                            <div class="chart-title">
+                                <i class="bi bi-award text-info"></i> 品牌广告排名趋势（SB）
+                            </div>
+                            <canvas id="sbAdRankChart" class="small-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="charts-grid2">
+                        <!-- 图5：自然排名 vs 广告排名对比 -->
+                        <div class="chart-container">
+                            <div class="chart-title">
+                                <i class="bi bi-layers text-success"></i> 自然排名 vs 广告排名对比
+                            </div>
+                            <canvas id="rankCompareChart" class="small-chart"></canvas>
+                        </div>
+
+                        <!-- 图6：价格变化趋势 -->
+                        <div class="chart-container">
+                            <div class="chart-title">
+                                <i class="bi bi-currency-dollar text-success"></i> 价格变化趋势
                             </div>
                             <canvas id="priceChart" class="small-chart"></canvas>
                         </div>
                     </div>
+
                     <div class="charts-grid1">
-                        <!-- 图3：各关键词排名趋势对比 -->
+                        <!-- 图7：各关键词排名趋势对比 -->
                         <div class="chart-container">
                             <div class="chart-title">
-                                <i class="bi bi-diagram-3 text-info"></i> 各关键词排名对比
+                                <i class="bi bi-diagram-3 text-info"></i> 各关键词自然排名对比
                             </div>
                             <canvas id="rankingTrendChart" class="small-chart"></canvas>
                             <div class="text-secondary small text-center mt-1">点击图例可显示/隐藏曲线</div>
+                        </div>
+                    </div>
+
+                    <div class="charts-grid2">
+                        <!-- 图8：各关键词广告排名对比 -->
+                        <div class="chart-container">
+                            <div class="chart-title">
+                                <i class="bi bi-diagram-3 text-warning"></i> 各关键词广告排名对比（SP）
+                            </div>
+                            <canvas id="adRankTrendChart" class="small-chart"></canvas>
+                        </div>
+
+                        <!-- 图9：排名分布饼图 -->
+                        <div class="chart-container">
+                            <div class="chart-title">
+                                <i class="bi bi-pie-chart text-purple"></i> 广告类型分布
+                            </div>
+                            <canvas id="adTypeChart" class="small-chart"></canvas>
                         </div>
                     </div>
                     <!-- 数据详情表格 -->

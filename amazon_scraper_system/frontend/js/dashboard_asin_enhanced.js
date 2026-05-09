@@ -19,7 +19,12 @@ const AVAILABLE_CHARTS = [
     { id: 'brandComparison', label: '品牌对比TOP10', enabled: false, grid: 2, order: 11 },
     { id: 'avgRankByKeyword', label: '关键词平均排名', enabled: false, grid: 2, order: 12 },
     { id: 'timeHeatmap', label: '时间热力分布', enabled: false, grid: 1, order: 13 },
-    { id: 'competitorAnalysis', label: '竞品分析矩阵', enabled: false, grid: 1, order: 14 }
+    { id: 'competitorAnalysis', label: '竞品分析矩阵', enabled: false, grid: 1, order: 14 },
+    { id: 'spRankTrend', label: 'SP广告排名趋势', enabled: true, grid: 2, order: 15 },
+    { id: 'videoRankTrend', label: '视频广告排名趋势(SB_Video)', enabled: true, grid: 2, order: 16 },
+    { id: 'sbRankTrend', label: '品牌广告排名趋势(SB)', enabled: true, grid: 2, order: 17 },
+    { id: 'organicVsAdLine', label: '自然排名 vs 广告排名对比', enabled: true, grid: 2, order: 18 },
+    { id: 'kwAdRankCompare', label: '各关键词SP广告排名对比', enabled: true, grid: 1, order: 19 }
 ];
 
 // 预设模板
@@ -898,6 +903,65 @@ const chartRenderers = {
         });
     },
 
+    spRankTrend: () => renderAdRankTrendChart('spRankTrend', 'SP', 'SP广告排名趋势', '#3b82f6'),
+    videoRankTrend: () => renderAdRankTrendChart('videoRankTrend', 'SB_Video', '视频广告排名趋势', '#f59e0b'),
+    sbRankTrend: () => renderAdRankTrendChart('sbRankTrend', 'SB', '品牌广告排名趋势', '#10b981'),
+
+    organicVsAdLine: () => {
+        // 按日期聚合自然排名 vs SP广告排名
+        const organicByDate = {}, adByDate = {};
+        allData.forEach(d => {
+            const date = new Date(d.scraped_at).toLocaleDateString();
+            if (!d.ad_type || d.ad_type === 'Organic') {
+                if (d.organic_rank) { if (!organicByDate[date]) organicByDate[date] = []; organicByDate[date].push(d.organic_rank); }
+            } else if (d.ad_type === 'SP') {
+                if (d.ad_rank) { if (!adByDate[date]) adByDate[date] = []; adByDate[date].push(d.ad_rank); }
+            }
+        });
+        const dates = [...new Set([...Object.keys(organicByDate), ...Object.keys(adByDate)])].sort((a, b) => new Date(a) - new Date(b));
+        const avg = (map, d) => map[d] ? map[d].reduce((a, b) => a + b, 0) / map[d].length : null;
+        chartInstances.organicVsAdLine = new Chart(document.getElementById('chart_organicVsAdLine'), {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: [
+                    { label: '自然排名', data: dates.map(d => avg(organicByDate, d)), borderColor: '#10b981', backgroundColor: '#10b98120', tension: 0.3 },
+                    { label: 'SP广告排名', data: dates.map(d => avg(adByDate, d)), borderColor: '#3b82f6', backgroundColor: '#3b82f620', tension: 0.3 }
+                ]
+            },
+            options: darkLineOptions(true)
+        });
+    },
+
+    kwAdRankCompare: () => {
+        // 各关键词 SP 广告排名折线（每条线一个关键词）
+        const kwMap = {};
+        allData.filter(d => d.ad_type === 'SP' && d.ad_rank).forEach(d => {
+            const date = new Date(d.scraped_at).toLocaleDateString();
+            if (!kwMap[d.keyword]) kwMap[d.keyword] = {};
+            if (!kwMap[d.keyword][date]) kwMap[d.keyword][date] = [];
+            kwMap[d.keyword][date].push(d.ad_rank);
+        });
+        const dates = [...new Set(allData.map(d => new Date(d.scraped_at).toLocaleDateString()))].sort((a, b) => new Date(a) - new Date(b));
+        const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#ec4899'];
+        const keywords = Object.keys(kwMap).slice(0, 8);
+        chartInstances.kwAdRankCompare = new Chart(document.getElementById('chart_kwAdRankCompare'), {
+            type: 'line',
+            data: {
+                labels: dates,
+                datasets: keywords.map((kw, i) => ({
+                    label: kw,
+                    data: dates.map(d => kwMap[kw][d] ? kwMap[kw][d].reduce((a, b) => a + b, 0) / kwMap[kw][d].length : null),
+                    borderColor: colors[i % colors.length],
+                    backgroundColor: 'transparent',
+                    tension: 0.3,
+                    spanGaps: true
+                }))
+            },
+            options: darkLineOptions(true)
+        });
+    },
+
     competitorAnalysis: () => {
         // 竞品分析：对比各ASIN的关键指标
         const analysis = selectedAsins.map(asin => {
@@ -948,6 +1012,48 @@ const chartRenderers = {
         });
     }
 };
+
+// 辅助：暗色折线图通用 options
+function darkLineOptions(reverseY = false) {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: { reverse: reverseY, ticks: { color: '#cbd5e1' }, grid: { color: '#334155' } },
+            x: { ticks: { color: '#cbd5e1' }, grid: { color: '#334155' } }
+        },
+        plugins: { legend: { labels: { color: '#cbd5e1' } } }
+    };
+}
+
+// 辅助：按 ad_type 渲染广告排名趋势折线图（每个 ASIN 一条线）
+function renderAdRankTrendChart(chartId, adType, label, color) {
+    const colors = [color, '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+    const dates = [...new Set(allData.map(d => new Date(d.scraped_at).toLocaleDateString()))].sort((a, b) => new Date(a) - new Date(b));
+
+    const datasets = selectedAsins.map((asin, i) => {
+        const byDate = {};
+        allData.filter(d => d.asin === asin && d.ad_type === adType && d.ad_rank).forEach(d => {
+            const date = new Date(d.scraped_at).toLocaleDateString();
+            if (!byDate[date]) byDate[date] = [];
+            byDate[date].push(d.ad_rank);
+        });
+        return {
+            label: asin,
+            data: dates.map(d => byDate[d] ? byDate[d].reduce((a, b) => a + b, 0) / byDate[d].length : null),
+            borderColor: colors[i % colors.length],
+            backgroundColor: 'transparent',
+            tension: 0.3,
+            spanGaps: true
+        };
+    });
+
+    chartInstances[chartId] = new Chart(document.getElementById(`chart_${chartId}`), {
+        type: 'line',
+        data: { labels: dates, datasets },
+        options: darkLineOptions(true)
+    });
+}
 
 // 监听时间范围变化
 document.getElementById('dateRange')?.addEventListener('change', loadData);

@@ -534,6 +534,7 @@ def get_asin_analysis(
             'keyword': r.keyword,
             'organic_rank': r.organic_rank,
             'ad_rank': r.ad_rank,
+            'ad_type': r.ad_type,
             'price_current': r.price_current,
             'rating_stars': float(r.rating_stars) if r.rating_stars else None,
             'rating_count': r.rating_count

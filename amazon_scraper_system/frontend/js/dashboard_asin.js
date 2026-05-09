@@ -1,8 +1,7 @@
 // ASIN 分析大屏 JS
 let chartInstances = {
-    organicRank: null,
-    price: null,
-    rankingTrend: null
+    organicRank: null, adRank: null, videoAdRank: null, sbAdRank: null,
+    rankCompare: null, price: null, rankingTrend: null, adRankTrend: null, adType: null
 };
 
 let tomSelectInstances = {};
@@ -14,6 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
     initTomSelects();
     loadKeywordsForFilter();
     
+    // 从 URL 参数读取 ASIN
+    const urlAsin = new URLSearchParams(location.search).get('asin');
+    if (urlAsin) {
+        document.getElementById('asinInput').value = urlAsin.toUpperCase();
+        loadAsinAnalysis();
+    }
+
     // ASIN 输入框回车查询
     document.getElementById('asinInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
@@ -114,19 +120,23 @@ async function loadAsinAnalysis() {
 function updateStatsCards(data) {
     const keywords = [...new Set(data.records.map(r => r.keyword))];
     document.getElementById('totalKeywords').textContent = keywords.length;
-    
-    const organicRanks = data.records.filter(r => r.organic_rank && r.organic_rank > 0).map(r => r.organic_rank);
-    const avgRank = organicRanks.length > 0 ? (organicRanks.reduce((a, b) => a + b, 0) / organicRanks.length).toFixed(1) : '-';
+
+    const organicRanks = data.records.filter(r => r.organic_rank > 0).map(r => r.organic_rank);
+    const avgRank = organicRanks.length > 0 ? (organicRanks.reduce((a,b)=>a+b,0)/organicRanks.length).toFixed(1) : '-';
     document.getElementById('avgRank').textContent = avgRank !== '-' ? `#${avgRank}` : '-';
-    
-    const latest = data.records.sort((a, b) => new Date(b.scraped_at) - new Date(a.scraped_at))[0];
+
+    const spRanks = data.records.filter(r => r.ad_type === 'SP' && r.ad_rank > 0).map(r => r.ad_rank);
+    document.getElementById('avgAdRank').textContent = spRanks.length > 0 ? `#${(spRanks.reduce((a,b)=>a+b,0)/spRanks.length).toFixed(1)}` : '-';
+
+    const videoRanks = data.records.filter(r => r.ad_type === 'SB_Video' && r.ad_rank > 0).map(r => r.ad_rank);
+    document.getElementById('avgVideoRank').textContent = videoRanks.length > 0 ? `#${(videoRanks.reduce((a,b)=>a+b,0)/videoRanks.length).toFixed(1)}` : '-';
+
+    const latest = data.records.sort((a,b) => new Date(b.scraped_at)-new Date(a.scraped_at))[0];
     document.getElementById('currentPrice').textContent = latest.price_current ? formatPrice(latest.price_current) : '-';
-    
-    const prices = data.records.filter(r => r.price_current).map(r => parseFloat(r.price_current.replace(/[^0-9.-]/g, ''))).filter(p => !isNaN(p));
+
+    const prices = data.records.filter(r=>r.price_current).map(r=>parseFloat(r.price_current.replace(/[^0-9.-]/g,''))).filter(p=>!isNaN(p));
     if (prices.length > 0) {
-        const minPrice = Math.min(...prices);
-        const maxPrice = Math.max(...prices);
-        document.getElementById('priceRange').textContent = `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`;
+        document.getElementById('priceRange').textContent = `$${Math.min(...prices).toFixed(2)}-$${Math.max(...prices).toFixed(2)}`;
     } else {
         document.getElementById('priceRange').textContent = '-';
     }
@@ -153,200 +163,222 @@ window.filterByKeyword = function(keyword) {
 
 // 更新图表
 function updateCharts(data) {
-    const sortedRecords = [...data.records].sort((a, b) => new Date(a.scraped_at) - new Date(b.scraped_at));
-    
-    const dates = [...new Set(sortedRecords.map(r => formatDate(r.scraped_at)))];
+    const sorted = [...data.records].sort((a,b) => new Date(a.scraped_at)-new Date(b.scraped_at));
+    const allDates = [...new Set(sorted.map(r => formatDate(r.scraped_at)))];
     const keywords = [...new Set(data.records.map(r => r.keyword))];
-    
-    // 整体自然排名趋势
-    const avgRankByDate = {};
-    sortedRecords.forEach(r => {
-        const date = formatDate(r.scraped_at);
-        if (r.organic_rank && r.organic_rank > 0) {
-            if (!avgRankByDate[date]) avgRankByDate[date] = { sum: 0, count: 0 };
-            avgRankByDate[date].sum += r.organic_rank;
-            avgRankByDate[date].count++;
-        }
-    });
-    
-    const rankDates = Object.keys(avgRankByDate);
-    const ranks = rankDates.map(date => (avgRankByDate[date].sum / avgRankByDate[date].count).toFixed(1));
-    
-    // 价格趋势
-    const priceByDate = {};
-    sortedRecords.forEach(r => {
-        const date = formatDate(r.scraped_at);
-        if (r.price_current) {
-            const price = parseFloat(r.price_current.replace(/[^0-9.-]/g, ''));
-            if (!isNaN(price)) {
-                priceByDate[date] = price;
+
+    // 按日期聚合各类排名均值
+    function avgByDate(records, rankField) {
+        const map = {};
+        records.forEach(r => {
+            const d = formatDate(r.scraped_at);
+            const v = r[rankField];
+            if (v && v > 0) {
+                if (!map[d]) map[d] = { sum: 0, count: 0 };
+                map[d].sum += v; map[d].count++;
             }
+        });
+        return map;
+    }
+
+    // 1. 自然排名
+    const organicMap = avgByDate(sorted, 'organic_rank');
+    const organicDates = Object.keys(organicMap);
+    updateRankChart('organicRankChart', 'organicRank', organicDates,
+        organicDates.map(d => (organicMap[d].sum/organicMap[d].count).toFixed(1)),
+        '平均自然排名', '#3b82f6', true);
+
+    // 2. SP广告排名
+    const spRecords = sorted.filter(r => r.ad_type === 'SP');
+    const spMap = avgByDate(spRecords, 'ad_rank');
+    const spDates = Object.keys(spMap);
+    updateRankChart('adRankChart', 'adRank', spDates,
+        spDates.map(d => (spMap[d].sum/spMap[d].count).toFixed(1)),
+        '平均SP广告排名', '#f59e0b', true);
+
+    // 3. SB_Video视频广告排名
+    const videoRecords = sorted.filter(r => r.ad_type === 'SB_Video');
+    const videoMap = avgByDate(videoRecords, 'ad_rank');
+    const videoDates = Object.keys(videoMap);
+    updateRankChart('videoAdRankChart', 'videoAdRank', videoDates,
+        videoDates.map(d => (videoMap[d].sum/videoMap[d].count).toFixed(1)),
+        '平均视频广告排名', '#ef4444', true);
+
+    // 4. SB品牌广告排名
+    const sbRecords = sorted.filter(r => r.ad_type === 'SB');
+    const sbMap = avgByDate(sbRecords, 'ad_rank');
+    const sbDates = Object.keys(sbMap);
+    updateRankChart('sbAdRankChart', 'sbAdRank', sbDates,
+        sbDates.map(d => (sbMap[d].sum/sbMap[d].count).toFixed(1)),
+        '平均SB品牌广告排名', '#8b5cf6', true);
+
+    // 5. 自然排名 vs 广告排名对比（双线）
+    updateRankCompareChart(allDates, organicMap, spMap);
+
+    // 6. 价格趋势
+    const priceMap = {};
+    sorted.forEach(r => {
+        const d = formatDate(r.scraped_at);
+        if (r.price_current) {
+            const p = parseFloat(r.price_current.replace(/[^0-9.-]/g,''));
+            if (!isNaN(p)) priceMap[d] = p;
         }
     });
-    
-    const priceDates = Object.keys(priceByDate);
-    const prices = priceDates.map(date => priceByDate[date]);
-    
-    // 各关键词排名趋势
-    const keywordRankData = {};
+    const priceDates = Object.keys(priceMap);
+    updatePriceChart(priceDates, priceDates.map(d => priceMap[d]));
+
+    // 7. 各关键词自然排名对比
+    const kwOrganicData = {};
     keywords.forEach(kw => {
-        keywordRankData[kw] = {};
-        const kwRecords = sortedRecords.filter(r => r.keyword === kw && r.organic_rank && r.organic_rank > 0);
-        kwRecords.forEach(r => {
-            const date = formatDate(r.scraped_at);
-            keywordRankData[kw][date] = r.organic_rank;
+        kwOrganicData[kw] = {};
+        sorted.filter(r => r.keyword === kw && r.organic_rank > 0).forEach(r => {
+            kwOrganicData[kw][formatDate(r.scraped_at)] = r.organic_rank;
         });
     });
-    
-    updateOrganicRankChart(rankDates, ranks);
-    updatePriceChart(priceDates, prices);
-    updateRankingTrendChart(keywordRankData, rankDates);
+    updateRankingTrendChart(kwOrganicData, allDates);
+
+    // 8. 各关键词SP广告排名对比
+    const kwAdData = {};
+    keywords.forEach(kw => {
+        kwAdData[kw] = {};
+        sorted.filter(r => r.keyword === kw && r.ad_type === 'SP' && r.ad_rank > 0).forEach(r => {
+            kwAdData[kw][formatDate(r.scraped_at)] = r.ad_rank;
+        });
+    });
+    updateAdRankTrendChart(kwAdData, allDates);
+
+    // 9. 广告类型分布饼图
+    const typeCounts = {};
+    sorted.forEach(r => {
+        const t = r.ad_type || '自然';
+        typeCounts[t] = (typeCounts[t] || 0) + 1;
+    });
+    updateAdTypeChart(typeCounts);
 }
 
-// 更新自然排名图表
-function updateOrganicRankChart(labels, data) {
-    const ctx = document.getElementById('organicRankChart').getContext('2d');
-    
-    if (chartInstances.organicRank) {
-        chartInstances.organicRank.destroy();
-    }
-    
-    chartInstances.organicRank = new Chart(ctx, {
+// 通用排名折线图
+function updateRankChart(canvasId, instanceKey, labels, data, label, color, reversed) {
+    if (chartInstances[instanceKey]) chartInstances[instanceKey].destroy();
+    if (!labels.length) { chartInstances[instanceKey] = null; return; }
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    chartInstances[instanceKey] = new Chart(ctx, {
         type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '平均自然排名',
-                data: data,
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                borderWidth: 2,
-                pointRadius: 3,
-                pointBackgroundColor: '#3b82f6',
-                pointBorderColor: '#fff',
-                tension: 0.3,
-                fill: true
-            }]
-        },
+        data: { labels, datasets: [{ label, data, borderColor: color, backgroundColor: color.replace(')', ',0.1)').replace('rgb','rgba'), borderWidth: 2, pointRadius: 3, pointBackgroundColor: color, tension: 0.3, fill: true }] },
         options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'top', labels: { color: '#94a3b8', font: { size: 10 } } },
-                tooltip: { callbacks: { label: (ctx) => `排名: #${ctx.raw}` } }
-            },
+            responsive: true, maintainAspectRatio: true,
+            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } }, tooltip: { callbacks: { label: c => `排名: #${c.raw}` } } },
             scales: {
-                y: { 
-                    reverse: true, 
-                    title: { display: true, text: '排名', color: '#94a3b8', font: { size: 10 } },
-                    ticks: { color: '#94a3b8', font: { size: 9 } },
-                    grid: { color: '#334155' }
-                },
-                x: { 
-                    title: { display: true, text: '日期', color: '#94a3b8', font: { size: 10 } },
-                    ticks: { color: '#94a3b8', font: { size: 9 }, maxRotation: 45 },
-                    grid: { color: '#334155' }
-                }
+                y: { reverse: reversed, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: '#334155' } },
+                x: { ticks: { color: '#94a3b8', font: { size: 9 }, maxRotation: 45 }, grid: { color: '#334155' } }
             }
         }
     });
+}
+
+// 自然排名 vs 广告排名对比
+function updateRankCompareChart(allDates, organicMap, spMap) {
+    if (chartInstances.rankCompare) chartInstances.rankCompare.destroy();
+    const ctx = document.getElementById('rankCompareChart').getContext('2d');
+    chartInstances.rankCompare = new Chart(ctx, {
+        type: 'line',
+        data: { labels: allDates, datasets: [
+            { label: '自然排名', data: allDates.map(d => organicMap[d] ? (organicMap[d].sum/organicMap[d].count).toFixed(1) : null), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: false, spanGaps: true },
+            { label: 'SP广告排名', data: allDates.map(d => spMap[d] ? (spMap[d].sum/spMap[d].count).toFixed(1) : null), borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.1)', borderWidth: 2, pointRadius: 2, tension: 0.3, fill: false, spanGaps: true }
+        ]},
+        options: {
+            responsive: true, maintainAspectRatio: true,
+            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } }, tooltip: { callbacks: { label: c => `${c.dataset.label}: #${c.raw}` } } },
+            scales: {
+                y: { reverse: true, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: '#334155' } },
+                x: { ticks: { color: '#94a3b8', font: { size: 9 }, maxRotation: 45 }, grid: { color: '#334155' } }
+            }
+        }
+    });
+}
+
+// 各关键词SP广告排名对比
+function updateAdRankTrendChart(kwAdData, allDates) {
+    if (chartInstances.adRankTrend) chartInstances.adRankTrend.destroy();
+    const colors = ['#f59e0b','#ef4444','#10b981','#3b82f6','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
+    const datasets = Object.keys(kwAdData).map((kw, i) => ({
+        label: kw.length > 25 ? kw.substring(0,25)+'...' : kw,
+        data: allDates.map(d => kwAdData[kw][d] || null),
+        borderColor: colors[i % colors.length], backgroundColor: 'transparent',
+        borderWidth: 1.5, pointRadius: 2, tension: 0.2, spanGaps: true
+    }));
+    const ctx = document.getElementById('adRankTrendChart').getContext('2d');
+    chartInstances.adRankTrend = new Chart(ctx, {
+        type: 'line',
+        data: { labels: allDates, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: true,
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 9 }, boxWidth: 10 } }, tooltip: { callbacks: { label: c => `${c.dataset.label}: #${c.raw}` } } },
+            scales: {
+                y: { reverse: true, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: '#334155' } },
+                x: { ticks: { color: '#94a3b8', font: { size: 9 }, maxRotation: 45 }, grid: { color: '#334155' } }
+            }
+        }
+    });
+}
+
+// 广告类型分布饼图
+function updateAdTypeChart(typeCounts) {
+    if (chartInstances.adType) chartInstances.adType.destroy();
+    const labels = Object.keys(typeCounts);
+    const ctx = document.getElementById('adTypeChart').getContext('2d');
+    chartInstances.adType = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data: labels.map(l => typeCounts[l]), backgroundColor: ['#3b82f6','#f59e0b','#ef4444','#8b5cf6','#10b981'], borderWidth: 0 }] },
+        options: {
+            responsive: true, maintainAspectRatio: true,
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } }
+        }
+    });
+}
+
+// 更新自然排名图表（保留旧接口）
+function updateOrganicRankChart(labels, data) {
+    updateRankChart('organicRankChart', 'organicRank', labels, data, '平均自然排名', '#3b82f6', true);
 }
 
 // 更新价格图表
 function updatePriceChart(labels, data) {
+    if (chartInstances.price) chartInstances.price.destroy();
     const ctx = document.getElementById('priceChart').getContext('2d');
-    
-    if (chartInstances.price) {
-        chartInstances.price.destroy();
-    }
-    
     chartInstances.price = new Chart(ctx, {
         type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '价格 ($)',
-                data: data,
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                borderWidth: 2,
-                pointRadius: 3,
-                pointBackgroundColor: '#10b981',
-                pointBorderColor: '#fff',
-                tension: 0.3,
-                fill: true
-            }]
-        },
+        data: { labels, datasets: [{ label: '价格 ($)', data, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', borderWidth: 2, pointRadius: 3, tension: 0.3, fill: true }] },
         options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'top', labels: { color: '#94a3b8', font: { size: 10 } } },
-                tooltip: { callbacks: { label: (ctx) => `价格: $${ctx.raw}` } }
-            },
+            responsive: true, maintainAspectRatio: true,
+            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } }, tooltip: { callbacks: { label: c => `价格: $${c.raw}` } } },
             scales: {
-                y: { 
-                    title: { display: true, text: '价格 (USD)', color: '#94a3b8', font: { size: 10 } },
-                    ticks: { color: '#94a3b8', font: { size: 9 }, callback: (v) => '$' + v },
-                    grid: { color: '#334155' }
-                },
-                x: { 
-                    title: { display: true, text: '日期', color: '#94a3b8', font: { size: 10 } },
-                    ticks: { color: '#94a3b8', font: { size: 9 }, maxRotation: 45 },
-                    grid: { color: '#334155' }
-                }
+                y: { ticks: { color: '#94a3b8', font: { size: 9 }, callback: v => '$'+v }, grid: { color: '#334155' } },
+                x: { ticks: { color: '#94a3b8', font: { size: 9 }, maxRotation: 45 }, grid: { color: '#334155' } }
             }
         }
     });
 }
 
-// 更新各关键词排名趋势对比图
+// 更新各关键词自然排名趋势对比图
 function updateRankingTrendChart(keywordRankData, allDates) {
+    if (chartInstances.rankingTrend) chartInstances.rankingTrend.destroy();
+    const colors = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
+    const datasets = Object.keys(keywordRankData).map((kw, i) => ({
+        label: kw.length > 25 ? kw.substring(0,25)+'...' : kw,
+        data: allDates.map(d => keywordRankData[kw][d] || null),
+        borderColor: colors[i % colors.length], backgroundColor: 'transparent',
+        borderWidth: 1.5, pointRadius: 2, tension: 0.2, spanGaps: true
+    }));
     const ctx = document.getElementById('rankingTrendChart').getContext('2d');
-    
-    if (chartInstances.rankingTrend) {
-        chartInstances.rankingTrend.destroy();
-    }
-    
-    const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
-    
-    const datasets = Object.keys(keywordRankData).map((kw, idx) => {
-        const data = allDates.map(date => keywordRankData[kw][date] || null);
-        return {
-            label: kw.length > 25 ? kw.substring(0, 25) + '...' : kw,
-            data: data,
-            borderColor: colors[idx % colors.length],
-            backgroundColor: 'transparent',
-            borderWidth: 1.5,
-            pointRadius: 2,
-            pointBackgroundColor: colors[idx % colors.length],
-            tension: 0.2,
-            spanGaps: true
-        };
-    });
-    
     chartInstances.rankingTrend = new Chart(ctx, {
         type: 'line',
-        data: { labels: allDates, datasets: datasets },
+        data: { labels: allDates, datasets },
         options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 9 }, boxWidth: 10 } },
-                tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: #${ctx.raw}` } }
-            },
+            responsive: true, maintainAspectRatio: true,
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 9 }, boxWidth: 10 } }, tooltip: { callbacks: { label: c => `${c.dataset.label}: #${c.raw}` } } },
             scales: {
-                y: { 
-                    reverse: true, 
-                    title: { display: true, text: '排名', color: '#94a3b8', font: { size: 10 } },
-                    ticks: { color: '#94a3b8', font: { size: 9 } },
-                    grid: { color: '#334155' }
-                },
-                x: { 
-                    title: { display: true, text: '日期', color: '#94a3b8', font: { size: 10 } },
-                    ticks: { color: '#94a3b8', font: { size: 9 }, maxRotation: 45 },
-                    grid: { color: '#334155' }
-                }
+                y: { reverse: true, ticks: { color: '#94a3b8', font: { size: 9 } }, grid: { color: '#334155' } },
+                x: { ticks: { color: '#94a3b8', font: { size: 9 }, maxRotation: 45 }, grid: { color: '#334155' } }
             }
         }
     });

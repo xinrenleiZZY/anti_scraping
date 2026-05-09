@@ -207,3 +207,18 @@ def reload_schedule():
     from app.main import reload_cron_jobs
     reload_cron_jobs()
     return {"message": "定时任务已重新加载"}
+
+
+@router.get("/schedule/jobs/{job_id}/runs")
+def get_job_runs(job_id: str):
+    """获取任务运行记录"""
+    from app.scraper.schedule_config import get_job_run_history
+    return get_job_run_history(job_id)
+
+
+@router.post("/schedule/jobs/{job_id}/run-record")
+def record_job_run(job_id: str, status: str = "success", note: str = ""):
+    """记录任务运行"""
+    from app.scraper.schedule_config import record_job_run
+    record_job_run(job_id, status, note)
+    return {"message": "已记录"}
