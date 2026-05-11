@@ -12,8 +12,15 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# 配置文件路径（保留用于读取 keywords 列表）
 CONFIG_PATH = Path(__file__).parent.parent / "scraper" / "scraper_config.json"
+
+
+def _sync_kw_to_config():
+    try:
+        from data_control.sync import sync_keyword_attributes_to_config
+        sync_keyword_attributes_to_config()
+    except Exception:
+        pass
 
 
 def load_config():
@@ -55,6 +62,7 @@ def add_keyword(keyword: str = Query(...), db: Session = Depends(get_db)):
         if not existing:
             db.add(KeywordAttribute(keyword=keyword))
             db.commit()
+            _sync_kw_to_config()
     
     return {"keywords": keywords}
 
@@ -75,6 +83,7 @@ def delete_keyword(keyword: str = Query(...), db: Session = Depends(get_db)):
     # 从数据库删除
     db.query(KeywordAttribute).filter(KeywordAttribute.keyword == keyword).delete()
     db.commit()
+    _sync_kw_to_config()
     
     return {"keywords": keywords}
 
@@ -92,6 +101,7 @@ def update_keywords(keywords: List[str], db: Session = Depends(get_db)):
         if not existing:
             db.add(KeywordAttribute(keyword=kw))
     db.commit()
+    _sync_kw_to_config()
     
     return {"keywords": keywords}
 
@@ -114,6 +124,7 @@ def update_keyword_tags(keyword: str, tags: List[str] = Body(...), db: Session =
         db.add(attrs)
     attrs.tags = tags
     db.commit()
+    _sync_kw_to_config()
     return tags
 
 
@@ -135,6 +146,7 @@ def update_keyword_festival(keyword: str, festival: str = Body(...), db: Session
         db.add(attrs)
     attrs.festival = festival
     db.commit()
+    _sync_kw_to_config()
     return festival
 
 
@@ -156,6 +168,7 @@ def update_keyword_festival_type(keyword: str, festival_type: str = Body(...), d
         db.add(attrs)
     attrs.festival_type = festival_type
     db.commit()
+    _sync_kw_to_config()
     return festival_type
 
 
@@ -177,6 +190,7 @@ def update_keyword_hot_season(keyword: str, hot_season: str = Body(...), db: Ses
         db.add(attrs)
     attrs.hot_season = hot_season
     db.commit()
+    _sync_kw_to_config()
     return hot_season
 
 
@@ -198,6 +212,7 @@ def update_keyword_tags_query(keyword: str = Query(...), tags: List[str] = Body(
         db.add(attrs)
     attrs.tags = tags
     db.commit()
+    _sync_kw_to_config()
     return tags
 
 
@@ -217,6 +232,7 @@ def update_keyword_festival_query(keyword: str = Query(...), festival: str = Bod
         db.add(attrs)
     attrs.festival = festival
     db.commit()
+    _sync_kw_to_config()
     return festival
 
 
@@ -236,6 +252,7 @@ def update_keyword_festival_type_query(keyword: str = Query(...), festival_type:
         db.add(attrs)
     attrs.festival_type = festival_type
     db.commit()
+    _sync_kw_to_config()
     return festival_type
 
 
@@ -255,6 +272,7 @@ def update_keyword_hot_season_query(keyword: str = Query(...), hot_season: str =
         db.add(attrs)
     attrs.hot_season = hot_season
     db.commit()
+    _sync_kw_to_config()
     return hot_season
 
 
@@ -344,6 +362,7 @@ async def import_keywords_with_user(file: UploadFile = File(...), db: Session = 
         save_config(config)
         
         db.commit()
+        _sync_kw_to_config()
         
         return {
             "imported_keywords": added_kws,

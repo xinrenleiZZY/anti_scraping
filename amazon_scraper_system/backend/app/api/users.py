@@ -9,6 +9,22 @@ from app.models import User, UserKeyword
 router = APIRouter()
 
 
+def _sync_users_json():
+    try:
+        from data_control.sync import sync_users
+        sync_users()
+    except Exception:
+        pass
+
+
+def _sync_user_keywords_json():
+    try:
+        from data_control.sync import sync_user_keywords
+        sync_user_keywords()
+    except Exception:
+        pass
+
+
 class UserCreate(BaseModel):
     name: str
 
@@ -37,6 +53,7 @@ def create_user(body: UserCreate, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    _sync_users_json()
     return {"id": user.id, "name": user.name, "keywords": []}
 
 
@@ -47,6 +64,7 @@ def update_user(user_id: int, body: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="用户不存在")
     user.name = body.name
     db.commit()
+    _sync_users_json()
     return {"id": user.id, "name": user.name}
 
 
@@ -57,6 +75,8 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="用户不存在")
     db.delete(user)
     db.commit()
+    _sync_users_json()
+    _sync_user_keywords_json()
     return {"message": "已删除"}
 
 
@@ -70,6 +90,7 @@ def add_keyword(user_id: int, body: KeywordAdd, db: Session = Depends(get_db)):
     if not exists:
         db.add(UserKeyword(user_id=user_id, keyword=body.keyword))
         db.commit()
+        _sync_user_keywords_json()
     keywords = db.query(UserKeyword).filter(UserKeyword.user_id == user_id).all()
     return [k.keyword for k in keywords]
 
@@ -83,5 +104,6 @@ def delete_keyword(user_id: int, keyword: str = Query(...), db: Session = Depend
         raise HTTPException(status_code=404, detail="关键词不存在")
     db.delete(uk)
     db.commit()
+    _sync_user_keywords_json()
     keywords = db.query(UserKeyword).filter(UserKeyword.user_id == user_id).all()
     return [k.keyword for k in keywords]

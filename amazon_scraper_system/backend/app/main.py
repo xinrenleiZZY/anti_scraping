@@ -14,6 +14,7 @@ from app.api.keywords import router as keywords_router
 from app.api.distributed import router as distributed_router# ZY0422
 from app.api.users import router as users_router #YU 421
 from app.api.asin_monitor import router as asin_monitor_router
+from app.api.data_control import router as data_control_router
 # zy 0422 添加日志路由
 from app.api import logs
 
@@ -40,6 +41,7 @@ app.include_router(keywords_router, prefix="/api", tags=["关键词管理"])
 app.include_router(distributed_router, prefix="/api", tags=["分布式爬取"])# ZY 0422
 app.include_router(users_router, prefix="/api", tags=["人员管理"]) #YU 421
 app.include_router(asin_monitor_router, prefix="/api", tags=["ASIN监控"])
+app.include_router(data_control_router, prefix="/api", tags=["数据管控"])
 app.include_router(logs.router, prefix="/api", tags=["logs"])# zy 0422 添加日志路由
 
 
