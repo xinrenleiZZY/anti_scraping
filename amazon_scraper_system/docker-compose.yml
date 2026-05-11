@@ -39,7 +39,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # 移除 healthcheck（因为没有 curl）
     command: >
       sh -c "
       pip install --no-cache-dir -r requirements.txt &&
@@ -56,4 +55,4 @@ services:
       - "8880:80"
     depends_on:
       - backend
-    restart: on-failure
+    restart: always
