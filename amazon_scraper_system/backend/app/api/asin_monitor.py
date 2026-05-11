@@ -32,6 +32,8 @@ RANK_LABELS = {
 # ===== 飞书发送 =====
 FEISHU_WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/6021c485-797a-48eb-91e5-f0b4cf144b3e"
 FEISHU_SECRET = "K0MnbNq9KiF6tjgGNnkZ1c"
+FEISHU_WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/fa4291c6-ff15-4bd0-9e3d-715c412c33d1"
+FEISHU_SECRET = "1pO1ZY6eBq0Pe5ohp6XXsg"
 
 def _feishu_sign(timestamp: str, secret: str) -> str:
     s = f"{timestamp}\n{secret}"

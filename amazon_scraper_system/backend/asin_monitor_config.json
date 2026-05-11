@@ -9,11 +9,41 @@
       "ad_rank_sb",
       "ad_rank_video"
     ],
-    "interval_hours": 2.0,
+    "interval_hours": 24.0,
     "days": 30,
     "enabled": true,
     "created_at": "2026-05-09T16:39:23.360869",
-    "last_run": "2026-05-09T16:53:53.160733",
-    "next_run": "2026-05-09T18:53:53.160752"
+    "last_run": "2026-05-09T18:34:07.768692",
+    "next_run": "2026-05-10T18:34:07.768713"
+  },
+  {
+    "id": "am_20260509_191005",
+    "asin": "B0D12CMGX9",
+    "monitor_name": "运营-何紫欣",
+    "rank_types": [
+      "organic_rank",
+      "ad_rank_sp"
+    ],
+    "interval_hours": 24.0,
+    "days": 30,
+    "enabled": true,
+    "created_at": "2026-05-09T19:10:05.765850",
+    "last_run": "2026-05-11T09:24:48.622132",
+    "next_run": "2026-05-12T09:24:48.622150"
+  },
+  {
+    "id": "am_20260509_191040",
+    "asin": "B0GFVBV9W7",
+    "monitor_name": "运营-李柳娟",
+    "rank_types": [
+      "organic_rank",
+      "ad_rank_video"
+    ],
+    "interval_hours": 24.0,
+    "days": 30,
+    "enabled": true,
+    "created_at": "2026-05-09T19:10:40.488885",
+    "last_run": "2026-05-11T09:26:10.859543",
+    "next_run": "2026-05-12T09:26:10.859561"
   }
 ]
