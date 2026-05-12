@@ -9,7 +9,10 @@ timeout /t 10 /nobreak
 
 echo 重启前端以确保连接...
 docker restart amazon_frontend
-
+echo 重启后端以确保连接...
+docker-compose up -d backend
+echo 重启只重启不重建镜像，需要强制重建容器以确保连接*（仅在 Docker 容器环境下有效，只动后端）...
+docker-compose up -d --force-recreate backend
 echo 服务已启动！
 echo 前端: http://localhost:8880
 echo 后端: http://localhost:8888
