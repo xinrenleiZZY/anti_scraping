@@ -117,5 +117,15 @@ CREATE TABLE IF NOT EXISTS keyword_attributes (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 网站访客记录表
+CREATE TABLE IF NOT EXISTS visitor_logs (
+    id SERIAL PRIMARY KEY,
+    page VARCHAR(200) NOT NULL,
+    ip VARCHAR(50),
+    user_agent TEXT,
+    referrer VARCHAR(500),
+    visited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 查看初始化结果
 SELECT '✅ 数据库初始化完成' as status;

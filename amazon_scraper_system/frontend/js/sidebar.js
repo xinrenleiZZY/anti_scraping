@@ -9,7 +9,8 @@ const sidebarItems = [
     { href: 'scrape.html', icon: 'bi-cloud-upload', text: '爬取控制' },
     { href: 'data.html', icon: 'bi bi-cloud-download', text: '数据查询' },
     { href: 'tasks.html', icon: 'bi-list-check', text: '任务监控' },
-    { href: 'users.html', icon: 'bi-people', text: '人员管理' }
+    { href: 'users.html', icon: 'bi-people', text: '人员管理' },
+    { href: 'visitors.html', icon: 'bi-eye', text: '访客记录' }
 
 ];
 // 获取标题元素

@@ -47,4 +47,17 @@ async function apiFetch(url, options = {}) {
 
 document.addEventListener('DOMContentLoaded', () => {
     checkApiStatus();
+    trackPageView();
 });
+
+function trackPageView() {
+    try {
+        const page = location.pathname.split('/').pop() || 'index.html';
+        const data = { page: page, referrer: document.referrer || '' };
+        fetch(`${API_BASE}/visitor/track`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        }).catch(() => {});
+    } catch (e) {}
+}
