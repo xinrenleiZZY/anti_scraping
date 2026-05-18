@@ -24,6 +24,7 @@ amazon_scraper_system/
 │   │   │   ├── asin_monitor.py       # ASIN重点监控API（飞书推送）
 │   │   │   ├── distributed.py        # 分布式爬取API
 │   │   │   ├── data_control.py       # 数据管控API（备份/恢复/校验）
+│   │   │   ├── visitors.py           # 访客记录API（追踪/统计）
 │   │   │   ├── logs.py              # 日志查询API
 │   │   │
 │   │   ├── scraper/                  # 爬虫模块
@@ -58,6 +59,7 @@ amazon_scraper_system/
 │   ├── tasks.html                    # 任务监控
 │   ├── users.html                    # 人员管理
 │   ├── asin_monitor.html             # ASIN监控
+│   ├── visitors.html                 # 访客记录
 │   ├── dashboard_asin.html           # ASIN分析大屏
 │   ├── dashboard_asin_enhanced.html  # ASIN分析大屏（增强版）
 │   ├── hzx.html                      # 测试页
@@ -77,6 +79,7 @@ amazon_scraper_system/
 │   │   ├── tasks.js                  # 任务监控逻辑
 │   │   ├── users.js                  # 人员管理逻辑
 │   │   ├── asin_monitor.js           # ASIN监控逻辑
+│   │   ├── visitors.js               # 访客记录逻辑
 │   │   ├── dashboard_asin.js         # ASIN分析大屏
 │   │   ├── dashboard_asin_enhanced.js # 增强ASIN分析
 │   │   ├── app.js                    # 旧版
@@ -125,11 +128,18 @@ amazon_scraper_system/
 docker-compose up -d
 ```
 
-| 服务       | 端口 | 访问地址              |
-| ---------- | :--: | --------------------- |
-| 前端       | 8880 | http://localhost:8880 |
-| 后端API    | 8888 | http://localhost:8888 |
-| PostgreSQL | 5200 | Navicat连接           |
+### 网络架构
+
+```
+局域网访客 → Windows Nginx (:8880) → 记录真实IP → Docker Nginx (:8881) → FastAPI
+```
+
+| 服务                  | 端口 | 访问地址              | 说明                            |
+| --------------------- | :--: | --------------------- | ------------------------------- |
+| 前端（Windows Nginx） | 8880 | http://localhost:8880 | ✅ 推荐入口，记录访客真实IP     |
+| 前端（Docker直连）    | 8881 | http://localhost:8881 | ⚠️ 不推荐，只能看到Docker内网IP |
+| 后端API               | 8888 | http://localhost:8888 | 直接调API用                     |
+| PostgreSQL            | 5200 | Navicat连接           | 数据库直连                      |
 
 ### 数据库连接（Navicat）
 
@@ -150,6 +160,7 @@ docker-compose up -d
 | `users`              | 人员名单                                   | ✅ 同步到 data_control/users.json         |
 | `user_keywords`      | 人员-关键词关联                            | ✅ 同步到 data_control/user_keywords.json |
 | `keyword_attributes` | 关键词属性（标签/节日/热卖期）             | ✅ 同步到 scraper_config.json             |
+| `visitor_logs`       | 访客记录（IP/页面/时间/UA/来源）           | ❌ 无备份                                 |
 
 ## 🔌 API 接口速览
 
@@ -214,6 +225,14 @@ docker-compose up -d
 | ---- | ----------- | -------- |
 | GET  | `/api/logs` | 获取日志 |
 
+### 访客记录
+
+| 方法 | 路径                  | 说明                                              |
+| ---- | --------------------- | ------------------------------------------------- |
+| POST | `/api/visitor/track`  | 记录页面访问（自动，页面加载时触发）              |
+| GET  | `/api/visitor/stats`  | 访客统计（今日/本周/总量/热门页面TOP10/每日趋势） |
+| GET  | `/api/visitor/recent` | 最近访客列表（含IP、页面、UA、来源）              |
+
 ### 数据管控
 
 | 方法 | 路径                   | 说明                   |
@@ -266,33 +285,33 @@ python data_control/recover.py --list-backups     # 列出可用备份
 | 人员管理   | `/users.html`             | 人员CRUD、关键词分配                                 |
 | ASIN监控   | `/asin_monitor.html`      | 重点ASIN排名监控、飞书推送                           |
 | ASIN分析   | `/dashboard_asin.html`    | ASIN排名趋势大屏                                     |
+| 访客记录   | `/visitors.html`          | 访客统计（今日/本周/总览/热门页面/最近访客）         |
 
-## 🐳 Docker 操作
-
-```bash
-# 重启所有服务
-docker-compose up -d --build
-
-# 重启单一服务
-docker restart amazon_frontend
-docker-compose up -d --force-recreate backend
-
-# 查看日志
-docker-compose logs -f
-docker logs amazon_backend --tail 30
-```
-
-## 📂 数据目录
-
-| 目录                    |        大小        | 说明                     |
-| ----------------------- | :----------------: | ------------------------ |
-| `postgres_data/`        |      ~1.5 GB       | 数据库物理文件（最核心） |
-| `amazon_data/`          | ~924 MB / 8655文件 | 爬虫原始输出             |
-| `processed_data/`       | ~632 MB / 2599文件 | 预处理数据（可恢复DB）   |
-| `data_control/backups/` |        按需        | 本地备份                 |
-
-## 🔐 密码
+## � 密码
 
 | 用途                   | 密码      |
 | ---------------------- | --------- |
 | 终止任务（X-Password） | HZX123456 |
+
+## 📍 Windows Nginx 管理
+
+Windows Nginx 安装在 `C:\nginx`，用于捕获访客真实IP。
+
+### 启动/停止
+
+```powershell
+# 启动
+Start-Process -NoNewWindow -FilePath "C:\nginx\nginx.exe" -ArgumentList "-p C:\nginx"
+
+# 停止
+taskkill /f /im nginx.exe
+
+# 重载配置
+C:\nginx\nginx.exe -s reload -p C:\nginx
+```
+
+### 配置位置
+
+- `C:\nginx\conf\nginx.conf` — 反向代理配置
+- 监听 8880 端口 → 转发到 Docker Nginx 8881
+- 访客通过 `http://192.168.0.193:8880` 访问即可记录真实IP
