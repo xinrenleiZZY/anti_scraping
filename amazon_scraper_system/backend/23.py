@@ -35,6 +35,7 @@ def send_feishu_msg(text):
 
     res = requests.post(webhook_url, json=payload, headers=headers)
     print(res.text)
-
+    
 if __name__ == "__main__":
-    send_feishu_msg("<at user_id=\"openclaw配置\">@openclaw配置</at> 同步所有任务表，飞书多维表格（Bitable）里的任务表")
+    a = "同步所有任务表"
+    send_feishu_msg(f"<at user_id=\"openclaw配置\">@openclaw配置</at> {a}")
