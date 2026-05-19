@@ -83,3 +83,14 @@ class KeywordAttribute(Base):
     # 时间戳
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class VisitorLog(Base):
+    __tablename__ = "visitor_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    page = Column(String(200), nullable=False)
+    ip = Column(String(50))
+    user_agent = Column(Text)
+    referrer = Column(String(500))
+    visited_at = Column(TIMESTAMP, server_default=func.now())

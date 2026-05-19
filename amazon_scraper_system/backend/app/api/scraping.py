@@ -7,7 +7,7 @@ import asyncio
 import logging
 from datetime import datetime
 from app.models import ScrapingTask
-from app.scraper.pipeline import run_now, run_daily, run_weekly, stop_task as pipeline_stop_task, stop_all_tasks as pipeline_stop_all_tasks
+from app.scraper.pipeline import run_now, run_daily, run_weekly, stop_task as pipeline_stop_task, stop_all_tasks as pipeline_stop_all_tasks, stop_all_completely, is_globally_stopped, reset_global_stop
 from pydantic import BaseModel
 from typing import List, Optional as OptionalType
 
@@ -37,6 +37,10 @@ async def start_scraping(
     pages: Optional[int] = Query(None)
 ):
     """启动爬取任务"""
+    # 检查全局停止标志
+    if is_globally_stopped():
+        raise HTTPException(status_code=409, detail="系统已全局停止，请先调用 /api/tasks/stop/reset 重置后再启动")
+
     # 使用 asyncio.to_thread 避免阻塞主线程
     async def run_in_thread():
         from app.scraper.pipeline import run_now
@@ -111,38 +115,48 @@ def stop_all_tasks(
     password: str = Header(..., alias="X-Password"),
     db: Session = Depends(get_db)
 ):
-    """终止所有运行中的任务（需要密码验证）"""
-    from app.scraper.pipeline import stop_all_tasks as pipeline_stop_all
-
+    """彻底停止所有爬取任务（需要密码验证）
+    
+    功能：
+    1. 设置全局停止标志，后续关键词不再启动
+    2. 标记数据库中所有 running/pending 的任务为 stopped
+    3. 正在执行的任务在下一个检查点会自行停止
+    """
     # 密码验证
     if password != "HZX123456":
         raise HTTPException(status_code=403, detail="密码错误，无权终止任务")
     
-    # 获取所有运行中的任务
-    running_tasks = db.query(ScrapingTask).filter(
-        ScrapingTask.status.in_(['running', 'pending'])
-    ).all()
-    
-    if not running_tasks:
-        return {"message": "没有运行中的任务", "stopped_count": 0, "total_count": 0}
-    
-    # 调用 pipeline 的 pipeline_stop_all_tasks 函数
-    pipeline_stop_all_tasks()
-    
-    # 更新所有任务状态
-    stopped_count = 0
-    for task in running_tasks:
-        task.status = 'stopped'
-        task.error_message = '用户手动终止（批量终止）'
-        task.completed_at = datetime.now()
-        stopped_count += 1
-    
-    db.commit()
+    # 调用全局彻底停止
+    result = stop_all_completely()
     
     return {
-        "message": f"已终止 {stopped_count} 个任务",
-        "stopped_count": stopped_count,
-        "total_count": len(running_tasks)
+        "message": f"已彻底停止 {result['stopped_count']} 个任务，后续关键词不再执行",
+        "stopped_count": result['stopped_count'],
+        "status": "stopped"
+    }
+
+
+@router.post("/tasks/stop/reset")
+def reset_stop_flag(
+    password: str = Header(..., alias="X-Password")
+):
+    """重置全局停止标志，允许继续爬取（需要密码验证）"""
+    if password != "HZX123456":
+        raise HTTPException(status_code=403, detail="密码错误")
+    
+    result = reset_global_stop()
+    return {
+        "message": "全局停止标志已清除，可以继续爬取",
+        "was_stopped": result['was_stopped']
+    }
+
+
+@router.get("/tasks/stop/status")
+def get_stop_status():
+    """查看当前全局停止状态"""
+    return {
+        "globally_stopped": is_globally_stopped(),
+        "message": "已全局停止" if is_globally_stopped() else "正常运行中"
     }
 
 # ========== 定时任务管理（Cron表达式） ==========
