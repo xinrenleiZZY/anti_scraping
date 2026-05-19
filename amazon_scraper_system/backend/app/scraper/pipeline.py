@@ -51,6 +51,18 @@ class ScrapingPipeline:
         :param save_to_file: 是否保存JSON文件
         :return: 执行结果
         """
+        # 检查全局停止标志
+        if is_globally_stopped():
+            logger.warning(f"全局停止已触发，跳过关键词: {keyword}")
+            return {
+                'keyword': keyword,
+                'status': 'skipped',
+                'started_at': datetime.now().isoformat(),
+                'completed_at': datetime.now().isoformat(),
+                'total_items': 0,
+                'error': '全局停止已触发，任务被跳过'
+            }
+
         result = {
             'keyword': keyword,
             'status': 'pending',
@@ -115,13 +127,18 @@ class ScrapingPipeline:
         logger.info(f"开始批量爬取，共 {len(keywords)} 个关键词")
         
         for idx, keyword in enumerate(keywords, 1):
+            # 每次循环前检查全局停止标志
+            if is_globally_stopped():
+                logger.warning(f"全局停止已触发，批量爬取中断（已处理 {idx-1}/{len(keywords)}）")
+                break
+
             print(f"\n[{idx}/{len(keywords)}] 处理: {keyword}")
             result = self.run_full_pipeline(keyword, pages, save_to_file)
             results.append(result)
             print(f"  ✅ {result['status']} - {result.get('saved_to_db', 0)} 条数据")
             
             # 关键词间隔，避免被封
-            if idx < len(keywords):
+            if not is_globally_stopped() and idx < len(keywords):
                 wait_time = 30
                 print(f"  等待 {wait_time} 秒...")
                 time.sleep(wait_time)
@@ -408,10 +425,12 @@ async def run_weekly_with_logs(manager=None):
     return result
 
 
-# backend/app/scraper/pipeline.py
+# ========== 全局任务停止控制 ==========
 
-# 全局任务停止标志
+# 单任务停止标志
 _task_stop_flags = {}
+# 全局停止标志 — 设置后任何新任务都不会启动
+_global_stop_requested = False
 
 
 def stop_task(task_id: int) -> bool:
@@ -422,11 +441,57 @@ def stop_task(task_id: int) -> bool:
 
 
 def stop_all_tasks() -> bool:
-    """终止所有任务"""
-    # 设置所有任务的停止标志（实际会在各任务循环中检查）
-    # 这里只是记录日志，实际的停止需要各任务在爬取过程中检查
-    logger.info("收到终止所有任务信号")
+    """（旧接口）仅设置各任务停止标志"""
+    logger.info("收到终止所有任务信号（旧接口）")
     return True
+
+
+def stop_all_completely() -> dict:
+    """
+    彻底停止所有爬取：
+    1. 设置全局停止标志，阻止后续关键词启动
+    2. 标记数据库中所有 running/pending 的任务为 stopped
+    3. 返回被终止的任务数量
+    """
+    global _global_stop_requested
+    _global_stop_requested = True
+    logger.info("🚫 全局停止已触发，后续任务不再启动")
+
+    # 标记数据库中的任务
+    from app.models import ScrapingTask
+    db = SessionLocal()
+    try:
+        running_tasks = db.query(ScrapingTask).filter(
+            ScrapingTask.status.in_(['running', 'pending'])
+        ).all()
+        count = len(running_tasks)
+        for t in running_tasks:
+            t.status = 'stopped'
+            t.error_message = '用户手动终止（全局停止）'
+            t.completed_at = datetime.now()
+        db.commit()
+        logger.info(f"数据库已标记 {count} 个任务为 stopped")
+        return {"stopped_count": count, "total_count": count}
+    finally:
+        db.close()
+
+
+def is_globally_stopped() -> bool:
+    """检查是否触发了全局停止"""
+    return _global_stop_requested
+
+
+def reset_global_stop() -> dict:
+    """
+    重置全局停止标志，允许继续爬取
+    """
+    global _global_stop_requested
+    was_stopped = _global_stop_requested
+    _global_stop_requested = False
+    _task_stop_flags.clear()
+    if was_stopped:
+        logger.info("✅ 全局停止标志已清除，可以继续爬取")
+    return {"reset": True, "was_stopped": was_stopped}
 
 
 def is_task_stopped(task_id: int) -> bool:
